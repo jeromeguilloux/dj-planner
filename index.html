@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101114">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DJ Planner">
+  <title>DJ Planner</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">ÉDOUARD KINNER</div>
+        <h1>DJ Planner</h1>
+      </div>
+      <button class="icon-btn" id="todayBtn" title="Aujourd'hui" aria-label="Aujourd'hui">●</button>
+    </header>
+
+    <main>
+      <section id="view-home" class="view active">
+        <div class="hero-card" id="nextEventCard"></div>
+
+        <div class="section-head">
+          <h2>À venir</h2>
+          <button class="text-btn" data-nav="planning">Voir le planning</button>
+        </div>
+        <div id="upcomingList" class="stack"></div>
+      </section>
+
+      <section id="view-planning" class="view">
+        <div class="calendar-head">
+          <button class="icon-btn" id="prevMonth" aria-label="Mois précédent">‹</button>
+          <h2 id="calendarTitle"></h2>
+          <button class="icon-btn" id="nextMonth" aria-label="Mois suivant">›</button>
+        </div>
+        <div class="weekdays">
+          <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+        </div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+        <div class="legend">
+          <span><i class="dot demande"></i>Demande</span>
+          <span><i class="dot option"></i>Option</span>
+          <span><i class="dot confirmee"></i>Confirmée</span>
+          <span><i class="dot realisee"></i>Réalisée</span>
+        </div>
+      </section>
+
+      <section id="view-form" class="view">
+        <div class="section-head sticky-subhead">
+          <div>
+            <div class="eyebrow" id="formMode">NOUVELLE PRESTATION</div>
+            <h2 id="formTitle">Créer</h2>
+          </div>
+          <button id="cancelEdit" class="text-btn">Annuler</button>
+        </div>
+
+        <form id="eventForm">
+          <input type="hidden" id="eventId">
+
+          <fieldset>
+            <legend>Événement</legend>
+            <label>Date <input id="date" type="date" required></label>
+            <label>Établissement / événement <input id="lieu" type="text" placeholder="Jardin Festif" required></label>
+            <label>Adresse <input id="adresse" type="text" placeholder="Adresse complète"></label>
+            <div class="two-cols">
+              <label>Contact <input id="contact" type="text" placeholder="Nom"></label>
+              <label>Téléphone <input id="telephone" type="tel" placeholder="06..."></label>
+            </div>
+            <label>Statut
+              <select id="statut">
+                <option value="demande">Demande</option>
+                <option value="option">Option</option>
+                <option value="confirmee" selected>Confirmée</option>
+                <option value="realisee">Réalisée</option>
+                <option value="annulee">Annulée</option>
+              </select>
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Horaires</legend>
+            <div class="three-cols">
+              <label>Arrivée <input id="heure_arrivee" type="time"></label>
+              <label>Début <input id="heure_debut" type="time"></label>
+              <label>Fin <input id="heure_fin" type="time"></label>
+            </div>
+            <div class="computed">Durée calculée : <strong id="durationPreview">—</strong></div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Public</legend>
+            <div class="chips" data-field="public">
+              <button type="button" class="chip" data-value="18-25">18–25</button>
+              <button type="button" class="chip" data-value="25-35">25–35</button>
+              <button type="button" class="chip" data-value="35-45">35–45</button>
+              <button type="button" class="chip" data-value="45+">45+</button>
+              <button type="button" class="chip" data-value="40+">40+</button>
+              <button type="button" class="chip" data-value="mixte">Mixte</button>
+              <button type="button" class="chip" data-value="familial">Familial</button>
+              <button type="button" class="chip" data-value="entreprise">Entreprise</button>
+              <button type="button" class="chip" data-value="étudiants">Étudiants</button>
+            </div>
+            <label>Nombre de personnes <input id="nombre_personnes" type="number" min="0" inputmode="numeric" placeholder="150"></label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Direction musicale</legend>
+            <div class="mini-actions">
+              <button type="button" class="secondary-btn preset" data-preset="afterwork">Afterwork chic</button>
+              <button type="button" class="secondary-btn preset" data-preset="festif">Festif premium</button>
+              <button type="button" class="secondary-btn preset" data-preset="open">Open format</button>
+            </div>
+            <div class="field-label">Ambiance</div>
+            <div class="chips" data-field="ambiances">
+              <button type="button" class="chip" data-value="Chill">Chill</button>
+              <button type="button" class="chip" data-value="Lounge">Lounge</button>
+              <button type="button" class="chip" data-value="Afterwork">Afterwork</button>
+              <button type="button" class="chip" data-value="Festif">Festif</button>
+              <button type="button" class="chip" data-value="Dansant">Dansant</button>
+              <button type="button" class="chip" data-value="Club">Club</button>
+              <button type="button" class="chip" data-value="Généraliste">Généraliste</button>
+              <button type="button" class="chip" data-value="Premium">Premium</button>
+            </div>
+
+            <div class="field-label">Styles</div>
+            <div class="chips" data-field="styles">
+              <button type="button" class="chip" data-value="Open Format">Open Format</button>
+              <button type="button" class="chip" data-value="Deep House">Deep House</button>
+              <button type="button" class="chip" data-value="Afro House">Afro House</button>
+              <button type="button" class="chip" data-value="Nu Disco">Nu Disco</button>
+              <button type="button" class="chip" data-value="Disco / Funk">Disco / Funk</button>
+              <button type="button" class="chip" data-value="Dance Pop">Dance Pop</button>
+              <button type="button" class="chip" data-value="80's">80's</button>
+              <button type="button" class="chip" data-value="90's">90's</button>
+              <button type="button" class="chip" data-value="2000's">2000's</button>
+              <button type="button" class="chip" data-value="2010's">2010's</button>
+              <button type="button" class="chip" data-value="Hits actuels">Hits actuels</button>
+              <button type="button" class="chip" data-value="House">House</button>
+            </div>
+
+            <label>Préconisations musicales
+              <textarea id="preconisations" rows="3" placeholder="Ex. début lounge, montée progressive après 21h30..."></textarea>
+            </label>
+            <label>Styles / titres à éviter
+              <textarea id="styles_a_eviter" rows="2" placeholder="Ex. pas de rap français..."></textarea>
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Matériel</legend>
+            <div class="field-label">Matériel présent sur place</div>
+            <div class="chips" data-field="materiel_sur_place">
+              <button type="button" class="chip" data-value="Sono">Sono</button>
+              <button type="button" class="chip" data-value="Caisson">Caisson</button>
+              <button type="button" class="chip" data-value="Éclairage">Éclairage</button>
+              <button type="button" class="chip" data-value="DJ Booth">DJ Booth</button>
+              <button type="button" class="chip" data-value="Micro">Micro</button>
+            </div>
+
+            <div class="field-row">
+              <div class="field-label">Matériel à apporter</div>
+              <button type="button" id="selectFullPack" class="text-btn">Pack complet</button>
+            </div>
+            <div class="chips" data-field="materiel_a_apporter">
+              <button type="button" class="chip" data-value="DDJ-FLX10">DDJ-FLX10</button>
+              <button type="button" class="chip" data-value="MacBook">MacBook</button>
+              <button type="button" class="chip" data-value="Casque">Casque</button>
+              <button type="button" class="chip" data-value="Sono">Sono</button>
+              <button type="button" class="chip" data-value="Caisson">Caisson</button>
+              <button type="button" class="chip" data-value="Éclairage">Éclairage</button>
+              <button type="button" class="chip" data-value="RB-DMX1">RB-DMX1</button>
+              <button type="button" class="chip" data-value="Pieds">Pieds</button>
+              <button type="button" class="chip" data-value="Micro">Micro</button>
+              <button type="button" class="chip" data-value="Câbles XLR">Câbles XLR</button>
+              <button type="button" class="chip" data-value="Rallonges">Rallonges</button>
+              <button type="button" class="chip" data-value="Multiprises">Multiprises</button>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Préparation</legend>
+            <div class="chips checklike" data-field="preparation">
+              <button type="button" class="chip" data-value="Préparer playlist">Préparer playlist</button>
+              <button type="button" class="chip" data-value="Télécharger nouveautés">Télécharger nouveautés</button>
+              <button type="button" class="chip" data-value="Préparer intro">Préparer intro</button>
+              <button type="button" class="chip" data-value="Vérifier Rekordbox">Vérifier Rekordbox</button>
+              <button type="button" class="chip" data-value="Préparer lighting">Préparer lighting</button>
+              <button type="button" class="chip" data-value="Playlist secours">Playlist secours</button>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Financier</legend>
+            <div class="three-cols">
+              <label>Cachet € <input id="cachet" type="number" min="0" step="0.01" inputmode="decimal"></label>
+              <label>Acompte € <input id="acompte" type="number" min="0" step="0.01" inputmode="decimal"></label>
+              <label>Solde € <input id="solde" type="number" min="0" step="0.01" inputmode="decimal"></label>
+            </div>
+            <label>Paiement
+              <select id="paiement">
+                <option value="a_recevoir">À recevoir</option>
+                <option value="partiel">Partiel</option>
+                <option value="paye">Payé</option>
+              </select>
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Notes</legend>
+            <textarea id="notes" rows="5" placeholder="Toutes les informations utiles pour le jour J..."></textarea>
+          </fieldset>
+
+          <div class="form-actions">
+            <button type="submit" class="primary-btn">Enregistrer la prestation</button>
+            <button type="button" id="deleteEvent" class="danger-btn hidden">Supprimer</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="view-detail" class="view">
+        <div id="detailContent"></div>
+      </section>
+
+      <section id="view-more" class="view">
+        <h2>Plus</h2>
+
+        <div class="settings-card">
+          <h3>Sauvegarde</h3>
+          <p>Tes prestations sont enregistrées localement sur cet appareil. Fais régulièrement une sauvegarde complète.</p>
+          <button class="primary-btn" id="backupBtn">Sauvegarder toutes les données</button>
+          <label class="file-btn">Restaurer une sauvegarde
+            <input id="restoreInput" type="file" accept=".json,application/json">
+          </label>
+          <button class="secondary-btn" id="csvBtn">Exporter en CSV</button>
+        </div>
+
+        <div class="settings-card">
+          <h3>Archives</h3>
+          <div id="archiveList" class="stack compact"></div>
+        </div>
+
+        <div class="settings-card">
+          <h3>À propos</h3>
+          <p><strong>DJ Planner V1</strong><br>Application locale de gestion des prestations DJ.</p>
+          <p class="muted">Aucune donnée de prestation n'est envoyée vers un serveur par l'application.</p>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button data-nav="home" class="active"><span>⌂</span>Accueil</button>
+      <button data-nav="planning"><span>▦</span>Planning</button>
+      <button data-nav="form" class="add-nav"><span>＋</span>Ajouter</button>
+      <button data-nav="more"><span>•••</span>Plus</button>
+    </nav>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="./app.js"></script>
+</body>
+</html>
