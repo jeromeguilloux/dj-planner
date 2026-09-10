@@ -1,6 +1,13 @@
-# DJ Planner V1.1 — Mise à jour
+# DJ Planner V1.1.1 — Correctif duplication
 
 Cette version remplace la V1 sans supprimer les prestations déjà enregistrées sur le même appareil et la même adresse GitHub Pages.
+
+## Correctif V1.1.1
+
+- correction de la duplication : les informations de la prestation source sont maintenant réellement reprises ;
+- la nouvelle date reste volontairement vide ;
+- les encaissements déjà reçus, la date de règlement, l'état de facture et les checklists Jour J ne sont pas copiés ;
+- le cache PWA est passé à une nouvelle version pour forcer la prise en compte du correctif.
 
 ## Nouveautés V1.1
 
@@ -17,12 +24,12 @@ Cette version remplace la V1 sans supprimer les prestations déjà enregistrées
 
 ## Mise à jour du dépôt GitHub
 
-1. Décompresser DJ_Planner_V1_1.zip sur le Mac.
+1. Décompresser DJ_Planner_V1_1_1.zip sur le Mac.
 2. Ouvrir le dépôt GitHub `dj-planner`.
 3. Cliquer sur `Add file` > `Upload files`.
-4. Glisser tout le CONTENU du dossier DJ_Planner_V1_1 dans la zone de dépôt, y compris `icons`.
+4. Glisser tout le CONTENU du dossier DJ_Planner_V1_1_1 dans la zone de dépôt, y compris `icons`.
 5. GitHub signalera que les fichiers existants seront remplacés / modifiés.
-6. Dans le message de validation, saisir : `Mise à jour DJ Planner V1.1`.
+6. Dans le message de validation, saisir : `Correctif duplication DJ Planner V1.1.1`.
 7. Cliquer sur `Commit changes` / `Valider les modifications`.
 8. Attendre la fin de GitHub Pages.
 9. Ouvrir https://jeromeguilloux.github.io/dj-planner/ et actualiser deux fois si nécessaire afin que le nouveau service worker prenne la main.
