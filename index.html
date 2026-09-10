@@ -17,16 +17,15 @@
   <div id="app">
     <header class="topbar">
       <div>
-        <div class="eyebrow">ÉDOUARD KINNER</div>
+        <div class="eyebrow" id="djNameDisplay">ÉDOUARD KINNER</div>
         <h1>DJ Planner</h1>
       </div>
       <button class="icon-btn" id="todayBtn" title="Aujourd'hui" aria-label="Aujourd'hui">●</button>
     </header>
 
-    <main>
+    <main id="mainScroller">
       <section id="view-home" class="view active">
         <div class="hero-card" id="nextEventCard"></div>
-
         <div class="section-head">
           <h2>À venir</h2>
           <button class="text-btn" data-nav="planning">Voir le planning</button>
@@ -40,9 +39,7 @@
           <h2 id="calendarTitle"></h2>
           <button class="icon-btn" id="nextMonth" aria-label="Mois suivant">›</button>
         </div>
-        <div class="weekdays">
-          <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
-        </div>
+        <div class="weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
         <div id="calendarGrid" class="calendar-grid"></div>
         <div class="legend">
           <span><i class="dot demande"></i>Demande</span>
@@ -54,10 +51,7 @@
 
       <section id="view-form" class="view">
         <div class="section-head sticky-subhead">
-          <div>
-            <div class="eyebrow" id="formMode">NOUVELLE PRESTATION</div>
-            <h2 id="formTitle">Créer</h2>
-          </div>
+          <div><div class="eyebrow" id="formMode">NOUVELLE PRESTATION</div><h2 id="formTitle">Créer</h2></div>
           <button id="cancelEdit" class="text-btn">Annuler</button>
         </div>
 
@@ -91,7 +85,7 @@
               <label>Début <input id="heure_debut" type="time"></label>
               <label>Fin <input id="heure_fin" type="time"></label>
             </div>
-            <div class="computed">Durée calculée : <strong id="durationPreview">—</strong></div>
+            <div class="computed">Durée du set : <strong id="durationPreview">—</strong></div>
           </fieldset>
 
           <fieldset>
@@ -128,7 +122,6 @@
               <button type="button" class="chip" data-value="Généraliste">Généraliste</button>
               <button type="button" class="chip" data-value="Premium">Premium</button>
             </div>
-
             <div class="field-label">Styles</div>
             <div class="chips" data-field="styles">
               <button type="button" class="chip" data-value="Open Format">Open Format</button>
@@ -144,30 +137,31 @@
               <button type="button" class="chip" data-value="Hits actuels">Hits actuels</button>
               <button type="button" class="chip" data-value="House">House</button>
             </div>
-
-            <label>Préconisations musicales
-              <textarea id="preconisations" rows="3" placeholder="Ex. début lounge, montée progressive après 21h30..."></textarea>
-            </label>
-            <label>Styles / titres à éviter
-              <textarea id="styles_a_eviter" rows="2" placeholder="Ex. pas de rap français..."></textarea>
-            </label>
+            <label>Préconisations musicales <textarea id="preconisations" rows="3" placeholder="Ex. lounge jusqu'à 22h30, puis montée progressive..."></textarea></label>
+            <label>Styles / titres à éviter <textarea id="styles_a_eviter" rows="2" placeholder="Ex. pas de rap français..."></textarea></label>
           </fieldset>
 
           <fieldset>
             <legend>Matériel</legend>
-            <div class="field-label">Matériel présent sur place</div>
+            <div class="field-label">1. Choisir le niveau de prestation</div>
+            <div class="pack-grid" id="packButtons">
+              <button type="button" class="pack-btn" data-pack="dj"><strong>Pack DJ</strong><small>Contrôleur + Mac + essentiels</small></button>
+              <button type="button" class="pack-btn" data-pack="son"><strong>DJ + Son</strong><small>Pack DJ + diffusion</small></button>
+              <button type="button" class="pack-btn" data-pack="complet"><strong>Pack complet</strong><small>DJ + son + lumière</small></button>
+            </div>
+            <div id="packHelp" class="computed">Choisis un pack pour calculer automatiquement ce qu'il faut apporter.</div>
+
+            <div class="field-label">2. Matériel fourni sur place</div>
             <div class="chips" data-field="materiel_sur_place">
               <button type="button" class="chip" data-value="Sono">Sono</button>
               <button type="button" class="chip" data-value="Caisson">Caisson</button>
               <button type="button" class="chip" data-value="Éclairage">Éclairage</button>
               <button type="button" class="chip" data-value="DJ Booth">DJ Booth</button>
               <button type="button" class="chip" data-value="Micro">Micro</button>
+              <button type="button" class="chip" data-value="Pieds">Pieds</button>
             </div>
 
-            <div class="field-row">
-              <div class="field-label">Matériel à apporter</div>
-              <button type="button" id="selectFullPack" class="text-btn">Pack complet</button>
-            </div>
+            <div class="field-row"><div class="field-label">3. À apporter</div><button type="button" id="clearPack" class="text-btn">Personnaliser</button></div>
             <div class="chips" data-field="materiel_a_apporter">
               <button type="button" class="chip" data-value="DDJ-FLX10">DDJ-FLX10</button>
               <button type="button" class="chip" data-value="MacBook">MacBook</button>
@@ -198,24 +192,28 @@
 
           <fieldset>
             <legend>Financier</legend>
-            <div class="three-cols">
-              <label>Cachet € <input id="cachet" type="number" min="0" step="0.01" inputmode="decimal"></label>
-              <label>Acompte € <input id="acompte" type="number" min="0" step="0.01" inputmode="decimal"></label>
-              <label>Solde € <input id="solde" type="number" min="0" step="0.01" inputmode="decimal"></label>
+            <div class="two-cols">
+              <label>Montant prestation € <input id="cachet" type="number" min="0" step="0.01" inputmode="decimal"></label>
+              <label>Frais déplacement € <input id="frais_deplacement" type="number" min="0" step="0.01" inputmode="decimal"></label>
             </div>
-            <label>Paiement
-              <select id="paiement">
-                <option value="a_recevoir">À recevoir</option>
-                <option value="partiel">Partiel</option>
-                <option value="paye">Payé</option>
-              </select>
-            </label>
+            <div class="finance-summary"><span>Total prestation</span><strong id="totalPreview">0,00 €</strong></div>
+            <div class="three-cols finance-inputs">
+              <label>Acompte demandé € <input id="acompte_demande" type="number" min="0" step="0.01" inputmode="decimal"></label>
+              <label>Acompte reçu € <input id="acompte_recu" type="number" min="0" step="0.01" inputmode="decimal"></label>
+              <label>Solde reçu € <input id="solde_recu" type="number" min="0" step="0.01" inputmode="decimal"></label>
+            </div>
+            <div class="finance-summary strong"><span>Reste à recevoir</span><strong id="restePreview">0,00 €</strong></div>
+            <div class="two-cols">
+              <label>Mode de règlement
+                <select id="mode_reglement"><option value="">Non renseigné</option><option>Virement</option><option>Espèces</option><option>CB</option><option>Chèque</option><option>Autre</option></select>
+              </label>
+              <label>Date de règlement <input id="date_reglement" type="date"></label>
+            </div>
+            <label class="toggle-row"><input id="facture_envoyee" type="checkbox"> <span>Facture envoyée</span></label>
+            <div class="computed">Statut calculé : <strong id="paymentPreview">À recevoir</strong></div>
           </fieldset>
 
-          <fieldset>
-            <legend>Notes</legend>
-            <textarea id="notes" rows="5" placeholder="Toutes les informations utiles pour le jour J..."></textarea>
-          </fieldset>
+          <fieldset><legend>Notes</legend><textarea id="notes" rows="5" placeholder="Toutes les informations utiles pour le jour J..."></textarea></fieldset>
 
           <div class="form-actions">
             <button type="submit" class="primary-btn">Enregistrer la prestation</button>
@@ -224,44 +222,41 @@
         </form>
       </section>
 
-      <section id="view-detail" class="view">
-        <div id="detailContent"></div>
-      </section>
+      <section id="view-detail" class="view"><div id="detailContent"></div></section>
+      <section id="view-dayj" class="view"><div id="dayJContent"></div></section>
 
       <section id="view-more" class="view">
         <h2>Plus</h2>
-
+        <div class="settings-card">
+          <h3>Réglages</h3>
+          <label>Nom DJ / nom d'artiste <input id="djNameInput" type="text" placeholder="Édouard Kinner"></label>
+          <button class="secondary-btn full" id="saveSettingsBtn">Enregistrer le nom</button>
+        </div>
         <div class="settings-card">
           <h3>Sauvegarde</h3>
-          <p>Tes prestations sont enregistrées localement sur cet appareil. Fais régulièrement une sauvegarde complète.</p>
+          <p>Tes prestations restent enregistrées localement sur cet appareil. Fais régulièrement une sauvegarde complète.</p>
           <button class="primary-btn" id="backupBtn">Sauvegarder toutes les données</button>
-          <label class="file-btn">Restaurer une sauvegarde
-            <input id="restoreInput" type="file" accept=".json,application/json">
-          </label>
-          <button class="secondary-btn" id="csvBtn">Exporter en CSV</button>
+          <label class="file-btn">Restaurer une sauvegarde <input id="restoreInput" type="file" accept=".json,application/json"></label>
+          <button class="secondary-btn full" id="csvBtn">Exporter en CSV</button>
         </div>
-
         <div class="settings-card">
-          <h3>Archives</h3>
-          <div id="archiveList" class="stack compact"></div>
+          <h3>Archives</h3><div id="archiveList" class="stack compact"></div>
         </div>
-
         <div class="settings-card">
-          <h3>À propos</h3>
-          <p><strong>DJ Planner V1</strong><br>Application locale de gestion des prestations DJ.</p>
-          <p class="muted">Aucune donnée de prestation n'est envoyée vers un serveur par l'application.</p>
+          <h3>Version</h3>
+          <p><strong>DJ Planner V1.1</strong><br>Interface iPhone renforcée, duplication, packs matériel, finances, mode Jour J et export calendrier enrichi.</p>
+          <p class="muted">La synchronisation Google Calendar → Calendrier Apple sera branchée après validation de cette V1.1.</p>
         </div>
       </section>
     </main>
 
-    <nav class="bottom-nav">
+    <nav class="bottom-nav" aria-label="Navigation principale">
       <button data-nav="home" class="active"><span>⌂</span>Accueil</button>
       <button data-nav="planning"><span>▦</span>Planning</button>
       <button data-nav="form" class="add-nav"><span>＋</span>Ajouter</button>
       <button data-nav="more"><span>•••</span>Plus</button>
     </nav>
   </div>
-
   <div id="toast" class="toast"></div>
   <script src="./app.js"></script>
 </body>

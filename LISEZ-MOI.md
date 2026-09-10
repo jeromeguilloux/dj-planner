@@ -1,82 +1,44 @@
-# DJ Planner V1 — Guide très simple
+# DJ Planner V1.1 — Mise à jour
 
-Tu n'as besoin de modifier AUCUN fichier de code.
+Cette version remplace la V1 sans supprimer les prestations déjà enregistrées sur le même appareil et la même adresse GitHub Pages.
 
-## Ce que contient le dossier
+## Nouveautés V1.1
 
-- index.html : l'écran principal de l'application
-- styles.css : le design
-- app.js : le fonctionnement et l'enregistrement local
-- manifest.webmanifest : l'installation sur iPhone
-- sw.js : le fonctionnement hors connexion
-- .nojekyll : indique à GitHub Pages de servir les fichiers tels quels
-- icons/ : les icônes de l'application
+- correction du menu inférieur sur iPhone : l'écran central défile, le menu reste fixe ;
+- nom DJ / nom d'artiste personnalisable dans Plus > Réglages ;
+- duplication d'une prestation ;
+- packs matériel avec calcul automatique de la liste à apporter ;
+- gestion financière enrichie : prestation, frais, acompte demandé/reçu, solde reçu, reste calculé, mode/date de règlement, facture ;
+- mode Jour J simplifié avec checklist matériel et préparation ;
+- boutons Apple Plans et appel téléphonique ;
+- export .ics enrichi avec arrivée, set, brief et deux rappels ;
+- sauvegarde JSON et export CSV mis à jour ;
+- préparation de l'étape suivante : synchronisation Google Calendar vers Calendrier Apple.
 
-## Étape A — Mettre l'application sur GitHub
+## Mise à jour du dépôt GitHub
 
-1. Ouvre https://github.com/ sur ton Mac.
-2. Crée un compte gratuit si tu n'en as pas.
-3. Une fois connecté, clique sur le bouton + en haut à droite.
-4. Clique sur "New repository".
-5. Nom du repository : dj-planner
-6. Choisis "Public".
-   Important : le CODE sera public, mais tes prestations ne seront PAS dans GitHub.
-   Les prestations restent dans la base locale de ton iPhone.
-7. Clique sur "Create repository".
-8. Dans le repository vide, choisis "uploading an existing file" / "Add file" > "Upload files".
-9. Décompresse le ZIP DJ_Planner_V1.zip sur ton Mac.
-10. Sélectionne TOUT LE CONTENU du dossier DJ_Planner_V1 :
-    index.html, styles.css, app.js, manifest.webmanifest, sw.js, .nojekyll et le dossier icons.
-11. Glisse les fichiers dans la zone d'upload GitHub.
-12. Clique sur "Commit changes".
+1. Décompresser DJ_Planner_V1_1.zip sur le Mac.
+2. Ouvrir le dépôt GitHub `dj-planner`.
+3. Cliquer sur `Add file` > `Upload files`.
+4. Glisser tout le CONTENU du dossier DJ_Planner_V1_1 dans la zone de dépôt, y compris `icons`.
+5. GitHub signalera que les fichiers existants seront remplacés / modifiés.
+6. Dans le message de validation, saisir : `Mise à jour DJ Planner V1.1`.
+7. Cliquer sur `Commit changes` / `Valider les modifications`.
+8. Attendre la fin de GitHub Pages.
+9. Ouvrir https://jeromeguilloux.github.io/dj-planner/ et actualiser deux fois si nécessaire afin que le nouveau service worker prenne la main.
 
-ATTENTION : il faut déposer le CONTENU du dossier, et non créer un dossier DJ_Planner_V1 dans le repository.
-index.html doit être visible à la racine du repository.
+## Contrôles avant utilisation réelle
 
-## Étape B — Activer GitHub Pages
-
-1. Dans le repository "dj-planner", clique sur "Settings".
-2. Dans la colonne de gauche, clique sur "Pages".
-3. Dans "Build and deployment", mets "Source" sur "Deploy from a branch".
-4. Dans "Branch", sélectionne "main".
-5. À côté, sélectionne "/ (root)".
-6. Clique sur "Save".
-7. GitHub affichera ensuite l'adresse publique de DJ Planner.
-   Elle ressemblera à :
-   https://TON-NOM-UTILISATEUR.github.io/dj-planner/
-
-## Étape C — Tester sur le Mac
-
-1. Ouvre l'adresse GitHub Pages.
-2. Clique sur "Ajouter".
-3. Crée une prestation test.
-4. Ferme l'onglet.
-5. Rouvre l'adresse.
-6. La prestation doit toujours être présente.
-
-## Étape D — Installer sur iPhone
-
-1. Sur l'iPhone, ouvre Safari.
-2. Ouvre l'adresse GitHub Pages de DJ Planner.
-3. Appuie sur le bouton de partage.
-4. Choisis "Sur l'écran d'accueil".
-5. Active "Ouvrir comme app web" si l'option est proposée.
-6. Appuie sur "Ajouter".
-
-Une icône DJ Planner apparaît sur l'écran d'accueil.
-
-## Sauvegarde
-
-Dans DJ Planner :
-Plus > Sauvegarder toutes les données
-
-L'iPhone génère un fichier JSON. Enregistre-le dans Fichiers > iCloud Drive.
-
-Pour restaurer :
-Plus > Restaurer une sauvegarde > sélectionne le fichier JSON.
+- Le menu inférieur reste immobile pendant le défilement d'une longue fiche.
+- Une ancienne prestation est toujours présente.
+- Plus > Réglages modifie le nom affiché en haut.
+- Dupliquer ouvre une copie et exige une nouvelle date.
+- Un pack matériel se recalcule lorsqu'un élément est marqué comme fourni sur place.
+- Les montants financiers se calculent automatiquement.
+- Mode Jour J conserve l'état des checklists après fermeture/réouverture.
+- Plans et Appeler fonctionnent sur iPhone.
+- Calendrier génère un fichier .ics enrichi.
 
 ## Important
 
-Les prestations sont enregistrées localement sur l'appareil via IndexedDB.
-GitHub héberge uniquement le programme.
-Une sauvegarde JSON régulière reste recommandée.
+La synchronisation automatique Google Calendar n'est pas encore activée dans cette V1.1. Elle nécessite une configuration OAuth Google propre à ton compte. Elle sera branchée après validation fonctionnelle de la V1.1, puis le calendrier Google pourra être affiché dans Calendrier Apple sur iPhone.
