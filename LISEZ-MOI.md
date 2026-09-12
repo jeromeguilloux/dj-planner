@@ -1,4 +1,33 @@
-# DJ Planner V1.1.1 — Correctif duplication
+# DJ Planner V1.2 — Journées indisponibles
+
+## Nouveauté V1.2
+
+Dans **Planning**, toucher une journée libre ouvre maintenant deux choix :
+
+- **Ajouter une prestation**
+- **Verrouiller la journée**
+
+Une journée verrouillée apparaît avec **🔒 Indisponible**.
+
+### Informations d'indisponibilité
+- motif : Personnel / Déplacement / Vacances / Repos / Autre ;
+- note facultative.
+
+### Protection
+- impossible d'enregistrer ou de dupliquer une prestation sur une journée verrouillée ;
+- pour reprendre une prestation ce jour-là, toucher la journée puis **Déverrouiller la journée** ;
+- impossible de verrouiller une journée qui contient déjà une prestation active.
+
+Les indisponibilités sont incluses dans la sauvegarde JSON mais exclues de l'export CSV des prestations.
+
+## Mise à jour GitHub
+
+Même procédure que précédemment : remplace les fichiers du dépôt par ceux de cette archive, valide les modifications et attends le nouveau déploiement GitHub Pages.
+
+---
+
+
+# DJ Planner V1.2 — Journées indisponibles
 
 Cette version remplace la V1 sans supprimer les prestations déjà enregistrées sur le même appareil et la même adresse GitHub Pages.
 
