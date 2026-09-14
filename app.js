@@ -195,7 +195,10 @@ let selectedCalendarDate='';
 function scrollTop(){const m=$('mainScroller');if(m)m.scrollTo({top:0,behavior:'instant'})}
 
 function nav(name){qsa('.view').forEach(v=>v.classList.remove('active'));const target=$('view-'+name);if(target)target.classList.add('active');qsa('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));scrollTop();if(name==='home')renderHome();if(name==='planning')renderCalendar();if(name==='more')renderMore();if(name==='finance')renderFinance();if(name==='form'&&!$('eventId').value)resetForm();}
-qsa('[data-nav]').forEach(b=>b.addEventListener('click',()=>nav(b.dataset.nav)));
+qsa('[data-nav]').forEach(b=>b.addEventListener('click',e=>{
+  e.preventDefault();
+  nav(b.dataset.nav);
+}));
 
 function clearSelections(){selected={public:[],ambiances:[],styles:[],materiel_sur_place:[],materiel_a_apporter:[],preparation:[]};currentPack='';qsa('.chip').forEach(c=>c.classList.remove('selected'));qsa('.pack-btn').forEach(b=>b.classList.remove('selected'));updatePackHelp();}
 function syncChips(){qsa('.chips[data-field]').forEach(group=>{const field=group.dataset.field;qsa('.chip',group).forEach(ch=>ch.classList.toggle('selected',(selected[field]||[]).includes(ch.dataset.value)))});qsa('.pack-btn').forEach(b=>b.classList.toggle('selected',b.dataset.pack===currentPack));updatePackHelp();}
@@ -388,7 +391,9 @@ async function renderFinance(){
   window.__financeEntries=entries;
 }
 
-$('openFinanceBtn').addEventListener('click',()=>nav('finance'));
+if($('openFinanceBtn')&&!$('openFinanceBtn').dataset.nav){
+  $('openFinanceBtn').addEventListener('click',()=>nav('finance'));
+}
 $('backFromFinance').addEventListener('click',()=>nav('more'));
 $('financePrevYear').addEventListener('click',()=>{financeSeasonYear=(financeSeasonYear??periodStartYearForDate(isoToday()))-1;renderFinance()});
 $('financeNextYear').addEventListener('click',()=>{financeSeasonYear=(financeSeasonYear??periodStartYearForDate(isoToday()))+1;renderFinance()});
@@ -429,5 +434,11 @@ function localICSDate(date,time){const t=time||'00:00';return date.replace(/-/g,
 function plusDay(iso){const d=dateFromISO(iso);d.setDate(d.getDate()+1);return[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
 function downloadICS(ev){const startTime=ev.heure_arrivee||ev.heure_debut||'00:00',endTime=ev.heure_fin||ev.heure_debut||'23:59';let endDate=ev.date;if(endTime<startTime)endDate=plusDay(ev.date);const desc=[`Arrivée : ${ev.heure_arrivee||'—'}`,`Set : ${ev.heure_debut||'—'} → ${ev.heure_fin||'—'}`,`Public : ${(ev.public||[]).join(', ')||'—'}${ev.nombre_personnes?` · ${ev.nombre_personnes} personnes`:''}`,`Ambiance : ${(ev.ambiances||[]).join(' → ')||'—'}`,`Styles : ${(ev.styles||[]).join(', ')||'—'}`,ev.preconisations?`Préconisations : ${ev.preconisations}`:'',ev.styles_a_eviter?`À éviter : ${ev.styles_a_eviter}`:'',`Matériel à apporter : ${(ev.materiel_a_apporter||[]).join(', ')||'—'}`,ev.contact?`Contact : ${ev.contact}${ev.telephone?` · ${ev.telephone}`:''}`:'',ev.notes?`Notes : ${ev.notes}`:''].filter(Boolean).join('\n');const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//DJ Planner V1.2//FR','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',`UID:${ev.id}@djplanner.local`,`DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}`,`DTSTART:${localICSDate(ev.date,startTime)}`,`DTEND:${localICSDate(endDate,endTime)}`,`SUMMARY:${icsEscape('DJ SET · '+ev.lieu)}`,ev.adresse?`LOCATION:${icsEscape(ev.adresse)}`:'',`DESCRIPTION:${icsEscape(desc)}`,ev.statut==='option'?'STATUS:TENTATIVE':'STATUS:CONFIRMED','BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY',`DESCRIPTION:${icsEscape('DJ demain · '+ev.lieu)}`,'END:VALARM','BEGIN:VALARM','TRIGGER:-PT2H','ACTION:DISPLAY',`DESCRIPTION:${icsEscape('Départ DJ · '+ev.lieu)}`,'END:VALARM','END:VEVENT','END:VCALENDAR'].filter(Boolean).join('\r\n');downloadBlob(ics,'text/calendar;charset=utf-8',`DJ_${ev.date}_${ev.lieu.replace(/[^\wÀ-ÿ-]+/g,'_')}.ics`)}
 
-if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}if(navigator.storage?.persist)navigator.storage.persist().catch(()=>{});
+if('serviceWorker'in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js?v=1.3.2',{updateViaCache:'none'})
+      .then(reg=>reg.update().catch(()=>{}))
+      .catch(()=>{});
+  });
+}if(navigator.storage?.persist)navigator.storage.persist().catch(()=>{});
 (async function init(){await openDB();applySettings();resetForm();await renderHome();})();

@@ -8,10 +8,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="DJ Planner">
   <title>DJ Planner</title>
-  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="manifest" href="./manifest.webmanifest?v=1.3.2">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <link rel="icon" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=1.3.2">
 </head>
 <body>
   <div id="app">
@@ -336,7 +336,7 @@
         <div class="settings-card finance-entry-card">
           <h3>Finances & encaissements</h3>
           <p>Suivi des paiements, provisions sociales et fiscales, vue mensuelle et période du 1er mai au 30 avril.</p>
-          <button class="primary-btn" id="openFinanceBtn">Ouvrir le tableau financier</button>
+          <button class="primary-btn" id="openFinanceBtn" data-nav="finance">Ouvrir le tableau financier</button>
         </div>
         <div class="settings-card">
           <h3>Sauvegarde</h3>
@@ -350,7 +350,7 @@
         </div>
         <div class="settings-card">
           <h3>Version</h3>
-          <p><strong>DJ Planner V1.3.1</strong><br>Ajout de la courbe du net encaissé dans la vue Finances & encaissements.</p>
+          <p><strong>DJ Planner V1.3.2</strong><br>Correctif iPhone : ouverture fiable du tableau financier et cache PWA renforcé.</p>
           <p class="muted">La synchronisation Google Calendar → Calendrier Apple sera branchée après validation de cette V1.1.</p>
         </div>
       </section>
@@ -410,6 +410,6 @@
   </div>
 
   <div id="toast" class="toast"></div>
-  <script src="./app.js"></script>
+  <script src="./app.js?v=1.3.2"></script>
 </body>
 </html>

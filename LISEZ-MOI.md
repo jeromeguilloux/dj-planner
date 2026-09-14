@@ -1,25 +1,30 @@
-# DJ Planner V1.3.1 — Courbe du net encaissé
+# DJ Planner V1.3.2 — Correctif iPhone tableau financier
 
-## Nouveauté
+## Bug corrigé
+Sur iPhone, le bouton **Ouvrir le tableau financier** pouvait être visible mais ne rien faire.
 
-Dans **Plus > Finances & encaissements**, un graphique a été ajouté :
+## Cause
+Safari/PWA pouvait charger le nouveau HTML tout en conservant un ancien `app.js` dans le cache.
 
-### Courbe du net encaissé
-Pour chaque mois de la période **1er mai → 30 avril**, la courbe affiche :
-
-**Encaissements du mois - charges provisionnées du mois**
-
-Cela permet une lecture visuelle rapide de l'évolution de la trésorerie nette mensuelle.
+## Corrections
+- bouton Finance relié aussi au système de navigation générique ;
+- fichiers critiques versionnés en `1.3.2` ;
+- nouveau cache `dj-planner-v1-3-2` ;
+- chargement réseau prioritaire pour HTML / JS / CSS / manifeste ;
+- ancien cache supprimé à l'activation ;
+- Service Worker enregistré avec `updateViaCache: none`.
 
 ## Mise à jour GitHub
-
-1. Décompresse `DJ_Planner_V1_3_1.zip`.
-2. Ouvre ton dépôt GitHub `dj-planner`.
+1. Décompresse `DJ_Planner_V1_3_2.zip`.
+2. GitHub > dépôt `dj-planner`.
 3. `Add file` > `Upload files`.
-4. Dépose tout le contenu du dossier.
-5. Message conseillé : `DJ Planner V1.3.1 - courbe net encaissé`.
-6. Valide les modifications.
-7. Attends le redéploiement GitHub Pages.
-8. Si l'ancienne version persiste, actualise une ou deux fois.
+4. Dépose tout le contenu.
+5. Message conseillé : `DJ Planner V1.3.2 - correctif finance iPhone`.
+6. Valide et attends GitHub Pages.
 
-Le cache PWA passe à `dj-planner-v1-3-1`.
+## Après déploiement sur iPhone
+1. Ouvre d'abord l'adresse DJ Planner dans Safari.
+2. Recharge une fois.
+3. Ferme complètement l'app DJ Planner installée.
+4. Rouvre-la depuis l'écran d'accueil.
+5. Va dans `Plus > Ouvrir le tableau financier`.
