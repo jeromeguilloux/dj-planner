@@ -1,38 +1,27 @@
-# DJ Planner V1.3.3 — Correctifs Planning & Public
+# DJ Planner V1.3.4 — Trésorerie fiabilisée
 
-## Correctif 1 — Date depuis le Planning
-Quand tu sélectionnes une date libre dans **Planning**, puis **Ajouter une prestation**, le formulaire reprend maintenant correctement la date sélectionnée.
+## Exemple de contrôle
+- Juin : 500 € net.
+- Juillet : 600 € encaissés, dont 250 € facturés. Charges 23 % sur 250 € = 57,50 €. Net = 542,50 €.
+- Août : 600 € net.
+- Cumul : 500 € fin juin, 1 042,50 € fin juillet, 1 642,50 € fin août.
 
-Exemple :
-- tu touches le 20 septembre ;
-- tu choisis Ajouter une prestation ;
-- le formulaire affiche bien le 20 septembre et non la date du jour.
+## Correctifs
+- plus aucun paiement sans date n'est automatiquement placé sur la date de prestation ;
+- tout montant encaissé oblige à saisir sa date d'encaissement ;
+- les anciens encaissements sans date apparaissent comme « Encaissements à dater » ;
+- graphique combiné : histogramme net mensuel + montant au-dessus de chaque barre + courbe du cumul net ;
+- statut de paiement clairement indiqué comme automatique ;
+- toute nouvelle prestation remet explicitement les montants encaissés à zéro.
 
-## Correctif 2 — Tranches de public
-La catégorie **40+** a été supprimée car elle faisait doublon avec la grille existante.
-
-Tranches conservées :
-- 18–25
-- 25–35
-- 35–45
-- 45+
-
-Catégories transversales conservées :
-- Mixte
-- Familial
-- Entreprise
-- Étudiants
-
-Les anciennes fiches contenant encore `40+` sont nettoyées automatiquement à l'ouverture.
+## Statut de paiement
+- 0 € reçu : À recevoir
+- réception partielle : Partiellement payé
+- reçu >= total prestation : Payé
 
 ## Mise à jour GitHub
-1. Décompresse `DJ_Planner_V1_3_3.zip`.
-2. GitHub > dépôt `dj-planner`.
-3. `Add file` > `Upload files`.
-4. Dépose tout le contenu.
-5. Message conseillé : `DJ Planner V1.3.3 - correctifs planning et public`.
-6. Valide les modifications.
-7. Attends le redéploiement GitHub Pages.
-8. Si nécessaire, ouvre d'abord l'adresse dans Safari et recharge une fois.
-
-Le cache PWA passe à `dj-planner-v1-3-3`.
+1. Décompresse `DJ_Planner_V1_3_4.zip`.
+2. Add file > Upload files.
+3. Dépose tout le contenu.
+4. Message : `DJ Planner V1.3.4 - trésorerie et graphique`.
+5. Valide, attends GitHub Pages, puis recharge une fois dans Safari avant de relancer la PWA.

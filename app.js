@@ -51,16 +51,14 @@ function paymentEntriesForEvent(ev){
   if(!isBooking(ev))return[];
   const entries=[];
   const invoice=!!ev.facture_envoyee;
-  if(num(ev.acompte_recu)>0)entries.push({
-    eventId:ev.id,date:ev.date_acompte_recu||ev.date_reglement||ev.date,
-    inferred:!(ev.date_acompte_recu||ev.date_reglement),lieu:ev.lieu||'Prestation',nature:'Acompte',
-    amount:num(ev.acompte_recu),invoice,mode:ev.mode_reglement||''
-  });
-  if(num(ev.solde_recu)>0)entries.push({
-    eventId:ev.id,date:ev.date_solde_recu||ev.date_reglement||ev.date,
-    inferred:!(ev.date_solde_recu||ev.date_reglement),lieu:ev.lieu||'Prestation',nature:'Solde',
-    amount:num(ev.solde_recu),invoice,mode:ev.mode_reglement||''
-  });
+  if(num(ev.acompte_recu)>0){
+    const date=ev.date_acompte_recu||ev.date_reglement||'';
+    entries.push({eventId:ev.id,date,undated:!date,lieu:ev.lieu||'Prestation',nature:'Acompte',amount:num(ev.acompte_recu),invoice,mode:ev.mode_reglement||''});
+  }
+  if(num(ev.solde_recu)>0){
+    const date=ev.date_solde_recu||ev.date_reglement||'';
+    entries.push({eventId:ev.id,date,undated:!date,lieu:ev.lieu||'Prestation',nature:'Solde',amount:num(ev.solde_recu),invoice,mode:ev.mode_reglement||''});
+  }
   return entries;
 }
 function financeCalc(entry){
@@ -77,105 +75,33 @@ function formatMoneyCompact(value){
     maximumFractionDigits:0
   }).format(value||0);
 }
-function renderFinanceNetChart(labels,values){
-  const canvas=$('financeNetChart');
-  if(!canvas) return;
-  const cssWidth=Math.max(280, canvas.clientWidth || canvas.parentElement?.clientWidth || 320);
-  const cssHeight=220;
-  const dpr=window.devicePixelRatio||1;
-  canvas.width=Math.round(cssWidth*dpr);
-  canvas.height=Math.round(cssHeight*dpr);
-  const ctx=canvas.getContext('2d');
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.clearRect(0,0,cssWidth,cssHeight);
+function renderFinanceNetChart(labels,monthlyValues,cumulativeValues){
+  const canvas=$('financeNetChart');if(!canvas)return;
+  const cssWidth=Math.max(300,canvas.clientWidth||canvas.parentElement?.clientWidth||320),cssHeight=260,dpr=window.devicePixelRatio||1;
+  canvas.width=Math.round(cssWidth*dpr);canvas.height=Math.round(cssHeight*dpr);
+  const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,cssWidth,cssHeight);
+  const pad={top:30,right:52,bottom:38,left:48},w=cssWidth-pad.left-pad.right,h=cssHeight-pad.top-pad.bottom;
+  const monthly=monthlyValues.map(v=>Math.max(0,Number(v||0))),cumulative=cumulativeValues.map(v=>Math.max(0,Number(v||0)));
+  const monthMax=Math.max(1,...monthly),cumulMax=Math.max(1,...cumulative),monthlyScaleMax=monthMax*1.22,cumulScaleMax=cumulMax*1.10;
+  const axis='#2d3138',muted='#858a94',accent='#d7bf84',line='#9fb8e8';
+  const slot=w/Math.max(1,labels.length),barW=Math.max(8,Math.min(22,slot*.56));
+  const x=i=>pad.left+slot*i+slot/2,yM=v=>pad.top+h-(v/monthlyScaleMax)*h,yC=v=>pad.top+h-(v/cumulScaleMax)*h;
 
-  const pad={top:18,right:16,bottom:40,left:54};
-  const w=cssWidth-pad.left-pad.right;
-  const h=cssHeight-pad.top-pad.bottom;
-  const vals=values.map(v=>Number(v||0));
-  const minVal=Math.min(0,...vals);
-  const maxVal=Math.max(0,...vals);
-  const span=(maxVal-minVal)||1;
-  const axisColor='#2d3138', mutedColor='#7f8590', accentColor='#d7bf84', fillColor='rgba(215,191,132,0.12)';
+  ctx.font='10px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif';ctx.textBaseline='middle';
+  ctx.strokeStyle=axis;ctx.lineWidth=1;ctx.fillStyle=muted;ctx.textAlign='right';
+  for(let i=0;i<=4;i++){const val=monthlyScaleMax*(1-i/4),y=pad.top+h*i/4;ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(pad.left+w,y);ctx.stroke();ctx.fillText(formatMoneyCompact(val),pad.left-6,y)}
+  ctx.textAlign='left';ctx.fillStyle=line;
+  for(let i=0;i<=2;i++){const val=cumulScaleMax*(1-i/2),y=pad.top+h*i/2;ctx.fillText(formatMoneyCompact(val),pad.left+w+6,y)}
 
-  function xFor(i){ return labels.length===1 ? pad.left+w/2 : pad.left + (i*(w/(labels.length-1))); }
-  function yFor(v){ return pad.top + ((maxVal-v)/span)*h; }
+  monthly.forEach((v,i)=>{const cx=x(i),y=yM(v),base=pad.top+h;ctx.fillStyle='rgba(215,191,132,.72)';ctx.fillRect(cx-barW/2,y,barW,Math.max(1,base-y));if(v>0){ctx.fillStyle='#e9d39c';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.font='9px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif';ctx.fillText(formatMoneyCompact(v),cx,Math.max(12,y-4))}});
+  ctx.beginPath();cumulative.forEach((v,i)=>{const cx=x(i),y=yC(v);if(i===0)ctx.moveTo(cx,y);else ctx.lineTo(cx,y)});ctx.strokeStyle=line;ctx.lineWidth=2.5;ctx.stroke();
+  cumulative.forEach((v,i)=>{const cx=x(i),y=yC(v);ctx.beginPath();ctx.arc(cx,y,3.2,0,Math.PI*2);ctx.fillStyle=line;ctx.fill()});
 
-  ctx.font='11px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif';
-  ctx.textAlign='right';
-  ctx.textBaseline='middle';
-  ctx.strokeStyle=axisColor;
-  ctx.fillStyle=mutedColor;
-  ctx.lineWidth=1;
-  const steps=4;
-  for(let i=0;i<=steps;i++){
-    const val=maxVal-(span/steps)*i;
-    const y=yFor(val);
-    ctx.beginPath();
-    ctx.moveTo(pad.left,y);
-    ctx.lineTo(pad.left+w,y);
-    ctx.stroke();
-    ctx.fillText(formatMoneyCompact(val), pad.left-8, y);
-  }
-
-  if(minVal<0 && maxVal>0){
-    const y0=yFor(0);
-    ctx.strokeStyle='rgba(201,106,106,0.5)';
-    ctx.beginPath();
-    ctx.moveTo(pad.left,y0);
-    ctx.lineTo(pad.left+w,y0);
-    ctx.stroke();
-  }
-
-  if(!labels.length){
-    ctx.fillStyle=mutedColor;
-    ctx.textAlign='center';
-    ctx.textBaseline='middle';
-    ctx.fillText('Aucune donnée', cssWidth/2, cssHeight/2);
-    return;
-  }
-
-  const baseline=yFor(Math.min(0,minVal));
-  ctx.beginPath();
-  vals.forEach((v,i)=>{
-    const x=xFor(i), y=yFor(v);
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  });
-  ctx.lineTo(xFor(labels.length-1), baseline);
-  ctx.lineTo(xFor(0), baseline);
-  ctx.closePath();
-  ctx.fillStyle=fillColor;
-  ctx.fill();
-
-  ctx.beginPath();
-  vals.forEach((v,i)=>{
-    const x=xFor(i), y=yFor(v);
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  });
-  ctx.strokeStyle=accentColor;
-  ctx.lineWidth=2.5;
-  ctx.stroke();
-
-  vals.forEach((v,i)=>{
-    const x=xFor(i), y=yFor(v);
-    ctx.beginPath();
-    ctx.arc(x,y,3.5,0,Math.PI*2);
-    ctx.fillStyle=accentColor;
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x,y,1.5,0,Math.PI*2);
-    ctx.fillStyle='#101114';
-    ctx.fill();
-  });
-
-  ctx.fillStyle=mutedColor;
-  ctx.textAlign='center';
-  ctx.textBaseline='top';
-  labels.forEach((label,i)=>{
-    ctx.fillText(label, xFor(i), cssHeight-24);
-  });
+  const last=[...cumulative].map((v,i)=>({v,i})).filter(o=>o.v>0).pop();
+  if(last){const cx=x(last.i),y=yC(last.v);ctx.font='10px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif';ctx.textAlign='right';ctx.textBaseline='bottom';ctx.fillStyle=line;ctx.fillText(`Cumul ${formatMoneyCompact(last.v)}`,Math.min(pad.left+w,cx+35),Math.max(14,y-6))}
+  ctx.fillStyle=muted;ctx.textAlign='center';ctx.textBaseline='top';ctx.font='10px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif';
+  labels.forEach((label,i)=>ctx.fillText(label,x(i),cssHeight-25));
 }
-
 function isoToday(){const d=new Date(),off=d.getTimezoneOffset();return new Date(d.getTime()-off*60000).toISOString().slice(0,10)}
 function dateFromISO(iso){return new Date(iso+'T12:00:00')}
 function formatLongDate(iso){return new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(dateFromISO(iso))}
@@ -215,15 +141,15 @@ $('heure_debut').addEventListener('input',updateDuration);$('heure_fin').addEven
 function updateFinancePreview(){const tmp={cachet:$('cachet').value,frais_deplacement:$('frais_deplacement').value,acompte_recu:$('acompte_recu').value,solde_recu:$('solde_recu').value};const f=calcFinance(tmp);$('totalPreview').textContent=money(f.total);$('restePreview').textContent=money(f.reste);$('paymentPreview').textContent=paymentLabel(f.paiement);}
 ['cachet','frais_deplacement','acompte_recu','solde_recu'].forEach(id=>$(id).addEventListener('input',updateFinancePreview));
 
-function resetForm(date=isoToday()){$('eventForm').reset();$('eventId').value='';$('date').value=date;$('statut').value='confirmee';$('formMode').textContent='NOUVELLE PRESTATION';$('formTitle').textContent='Créer';$('deleteEvent').classList.add('hidden');clearSelections();updateDuration();updateFinancePreview();}
+function resetForm(date=isoToday()){$('eventForm').reset();$('eventId').value='';$('date').value=date;$('statut').value='confirmee';['cachet','frais_deplacement','acompte_demande','acompte_recu','date_acompte_recu','solde_recu','date_solde_recu','date_reglement'].forEach(id=>{if($(id))$(id).value=''});$('mode_reglement').value='';$('facture_envoyee').checked=false;$('formMode').textContent='NOUVELLE PRESTATION';$('formTitle').textContent='Créer';$('deleteEvent').classList.add('hidden');clearSelections();updateDuration();updateFinancePreview();}
 $('cancelEdit').addEventListener('click',()=>nav('planning'));
 function setField(id,value){if($(id))$(id).value=value??''}
 function fillForm(ev){const fields=['date','lieu','adresse','contact','telephone','heure_arrivee','heure_debut','heure_fin','nombre_personnes','preconisations','styles_a_eviter','cachet','frais_deplacement','acompte_demande','acompte_recu','date_acompte_recu','solde_recu','date_solde_recu','mode_reglement','date_reglement','notes','statut'];fields.forEach(f=>setField(f,ev[f]));$('facture_envoyee').checked=!!ev.facture_envoyee;Object.keys(selected).forEach(k=>selected[k]=Array.isArray(ev[k])?[...ev[k]]:[]);currentPack=ev.materiel_pack||'';syncChips();updateDuration();updateFinancePreview();}
 async function editEvent(id){const ev=await getEvent(id);if(!ev)return;resetForm(ev.date);$('eventId').value=ev.id;fillForm(ev);$('formMode').textContent='MODIFIER LA PRESTATION';$('formTitle').textContent=ev.lieu||'Prestation';$('deleteEvent').classList.remove('hidden');nav('form');}
 async function duplicateEvent(id){const ev=await getEvent(id);if(!ev)return;resetForm('');nav('form');fillForm(ev);$('eventId').value='';$('date').value='';$('statut').value='option';$('acompte_recu').value='';$('date_acompte_recu').value='';$('solde_recu').value='';$('date_solde_recu').value='';$('date_reglement').value='';$('facture_envoyee').checked=false;updateFinancePreview();$('formMode').textContent='DUPLIQUER LA PRESTATION';$('formTitle').textContent=ev.lieu||'Prestation';$('deleteEvent').classList.add('hidden');setTimeout(()=>$('date').focus(),150);showToast('Copie prête : choisis la nouvelle date');}
 
-$('eventForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('eventId').value||uid(),date=$('date').value;const all=await getAllEvents();const blocked=all.find(x=>x.date===date&&x.id!==id&&isUnavailable(x));if(blocked){alert(`Cette journée est verrouillée comme indisponible${blocked.unavailability_reason?` (${blocked.unavailability_reason})`:''}. Déverrouille-la d'abord depuis le Planning.`);return;}const conflict=all.find(x=>x.date===date&&x.id!==id&&activeBooking(x));if(conflict&&!confirm(`Une prestation existe déjà ce jour : ${conflict.lieu}. Ajouter quand même ?`))return;const ev={id,date,record_type:'booking',lieu:$('lieu').value.trim(),adresse:$('adresse').value.trim(),contact:$('contact').value.trim(),telephone:$('telephone').value.trim(),heure_arrivee:$('heure_arrivee').value,heure_debut:$('heure_debut').value,heure_fin:$('heure_fin').value,duree:duration($('heure_debut').value,$('heure_fin').value),public:selected.public,nombre_personnes:num($('nombre_personnes').value),ambiances:selected.ambiances,styles:selected.styles,preconisations:$('preconisations').value.trim(),styles_a_eviter:$('styles_a_eviter').value.trim(),materiel_pack:currentPack,materiel_sur_place:selected.materiel_sur_place,materiel_a_apporter:selected.materiel_a_apporter,preparation:selected.preparation,notes:$('notes').value.trim(),statut:$('statut').value,cachet:num($('cachet').value),frais_deplacement:num($('frais_deplacement').value),acompte_demande:num($('acompte_demande').value),acompte_recu:num($('acompte_recu').value),date_acompte_recu:$('date_acompte_recu').value,
-solde_recu:num($('solde_recu').value),date_solde_recu:$('date_solde_recu').value,
+$('eventForm').addEventListener('submit',async e=>{e.preventDefault();const acompteRecu=num($('acompte_recu').value),soldeRecu=num($('solde_recu').value);if(acompteRecu>0&&!$('date_acompte_recu').value){alert("Indique la date d'encaissement de l'acompte pour l'intégrer correctement à la trésorerie.");$('date_acompte_recu').focus();return;}if(soldeRecu>0&&!$('date_solde_recu').value){alert("Indique la date d'encaissement du solde pour l'intégrer correctement à la trésorerie.");$('date_solde_recu').focus();return;}const id=$('eventId').value||uid(),date=$('date').value;const all=await getAllEvents();const blocked=all.find(x=>x.date===date&&x.id!==id&&isUnavailable(x));if(blocked){alert(`Cette journée est verrouillée comme indisponible${blocked.unavailability_reason?` (${blocked.unavailability_reason})`:''}. Déverrouille-la d'abord depuis le Planning.`);return;}const conflict=all.find(x=>x.date===date&&x.id!==id&&activeBooking(x));if(conflict&&!confirm(`Une prestation existe déjà ce jour : ${conflict.lieu}. Ajouter quand même ?`))return;const ev={id,date,record_type:'booking',lieu:$('lieu').value.trim(),adresse:$('adresse').value.trim(),contact:$('contact').value.trim(),telephone:$('telephone').value.trim(),heure_arrivee:$('heure_arrivee').value,heure_debut:$('heure_debut').value,heure_fin:$('heure_fin').value,duree:duration($('heure_debut').value,$('heure_fin').value),public:selected.public,nombre_personnes:num($('nombre_personnes').value),ambiances:selected.ambiances,styles:selected.styles,preconisations:$('preconisations').value.trim(),styles_a_eviter:$('styles_a_eviter').value.trim(),materiel_pack:currentPack,materiel_sur_place:selected.materiel_sur_place,materiel_a_apporter:selected.materiel_a_apporter,preparation:selected.preparation,notes:$('notes').value.trim(),statut:$('statut').value,cachet:num($('cachet').value),frais_deplacement:num($('frais_deplacement').value),acompte_demande:num($('acompte_demande').value),acompte_recu:acompteRecu,date_acompte_recu:$('date_acompte_recu').value,
+solde_recu:soldeRecu,date_solde_recu:$('date_solde_recu').value,
 mode_reglement:$('mode_reglement').value,
 date_reglement:$('date_solde_recu').value||$('date_acompte_recu').value||$('date_reglement').value,
 facture_envoyee:$('facture_envoyee').checked,jourj_material_done:[],jourj_preparation_done:[],updated_at:new Date().toISOString()};const previous=$('eventId').value?await getEvent(id):null;if(previous){ev.jourj_material_done=previous.jourj_material_done||[];ev.jourj_preparation_done=previous.jourj_preparation_done||[];}Object.assign(ev,calcFinance(ev));await saveEvent(ev);showToast('Prestation enregistrée');resetForm();await showDetail(id);});
@@ -349,7 +275,9 @@ async function renderFinance(){
   $('financeTotalRate').textContent=`${totalFinanceRate().toFixed(2).replace('.',',')} %`;
 
   const all=await getAllEvents();
-  const entries=all.flatMap(paymentEntriesForEvent).filter(x=>x.date>=bounds.start&&x.date<=bounds.end).map(financeCalc).sort((a,b)=>a.date.localeCompare(b.date));
+  const allPayments=all.flatMap(paymentEntriesForEvent).map(financeCalc);
+  const undated=allPayments.filter(x=>!x.date);
+  const entries=allPayments.filter(x=>x.date&&x.date>=bounds.start&&x.date<=bounds.end).sort((a,b)=>a.date.localeCompare(b.date));
   const total=entries.reduce((a,x)=>a+x.amount,0);
   const invoiced=entries.filter(x=>x.invoice).reduce((a,x)=>a+x.amount,0);
   const nonInvoiced=total-invoiced;
@@ -362,6 +290,10 @@ async function renderFinance(){
     <div class="finance-kpi"><span>Encaissé non facturé</span><strong>${money(nonInvoiced)}</strong><em>Charges non calculées selon ton filtre</em></div>
     <div class="finance-kpi"><span>Charges provisionnées</span><strong>${money(charges)}</strong><em>${totalFinanceRate().toFixed(2).replace('.',',')} % sur le facturé encaissé</em></div>
     <div class="finance-kpi wide"><span>Disponible après provisions affichées</span><strong>${money(after)}</strong><em>Encaissements − provisions calculées</em></div>`;
+  const undatedTotal=undated.reduce((a,x)=>a+x.amount,0);
+  $('financeUndatedNotice').classList.toggle('hidden',undated.length===0);
+  $('financeUndatedText').textContent=undated.length?`${undated.length} encaissement(s), soit ${money(undatedTotal)}, n'ont pas de date d'encaissement précise.`:'';
+
 
   const social=entries.reduce((a,x)=>a+x.social,0),tax=entries.reduce((a,x)=>a+x.tax,0),cfp=entries.reduce((a,x)=>a+x.cfp,0);
   $('financeChargesBreakdown').innerHTML=`
@@ -375,11 +307,13 @@ async function renderFinance(){
     const mt=xs.reduce((a,x)=>a+x.amount,0),mi=xs.filter(x=>x.invoice).reduce((a,x)=>a+x.amount,0),mc=xs.reduce((a,x)=>a+x.charges,0),ma=xs.reduce((a,x)=>a+x.after,0);
     return {...m,total:mt,invoiced:mi,charges:mc,after:ma};
   });
-  renderFinanceNetChart(monthlyRows.map(x=>x.label.split(' ')[0]), monthlyRows.map(x=>x.after));
+  let runningNet=0;
+  const cumulativeRows=monthlyRows.map(x=>{runningNet+=x.after;return runningNet});
+  renderFinanceNetChart(monthlyRows.map(x=>x.label.split(' ')[0]),monthlyRows.map(x=>x.after),cumulativeRows);
   $('financeMonthlyBody').innerHTML=monthlyRows.map(m=>`<tr><td>${escapeHTML(m.label)}</td><td>${money(m.total)}</td><td>${money(m.invoiced)}</td><td>${money(m.charges)}</td><td>${money(m.after)}</td></tr>`).join('');
 
   $('financeDetailBody').innerHTML=entries.length?entries.map(x=>`<tr>
-    <td>${formatShortDate(x.date)}${x.inferred?' *':''}</td>
+    <td>${formatShortDate(x.date)}</td>
     <td>${escapeHTML(x.lieu)}</td>
     <td>${escapeHTML(x.nature)}</td>
     <td>${money(x.amount)}</td>
@@ -436,7 +370,7 @@ function downloadICS(ev){const startTime=ev.heure_arrivee||ev.heure_debut||'00:0
 
 if('serviceWorker'in navigator){
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('./sw.js?v=1.3.3',{updateViaCache:'none'})
+    navigator.serviceWorker.register('./sw.js?v=1.3.4',{updateViaCache:'none'})
       .then(reg=>reg.update().catch(()=>{}))
       .catch(()=>{});
   });
