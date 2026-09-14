@@ -2,6 +2,9 @@ const DB_NAME='djPlannerDB';
 const DB_VERSION=1;
 const STORE='events';
 const SETTINGS_KEY='djPlannerSettingsV11';
+const FINANCE_SETTINGS_KEY='djPlannerFinanceV13';
+const FINANCE_DEFAULTS={socialRate:21.2,taxRate:1.7,cfpRate:0.1};
+let financeSeasonYear=null;
 const PACKS={
   dj:['DDJ-FLX10','MacBook','Casque','Câbles XLR','Rallonges','Multiprises'],
   son:['DDJ-FLX10','MacBook','Casque','Câbles XLR','Rallonges','Multiprises','Sono','Caisson','Pieds','Micro'],
@@ -25,13 +28,154 @@ function removeEvent(id){return new Promise((resolve,reject)=>{const r=tx('readw
 function uid(){return 'ev_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)}
 function num(v){const n=Number(v||0);return Number.isFinite(n)?n:0}
 function calcFinance(ev){const total=Math.max(0,num(ev.cachet)+num(ev.frais_deplacement));const received=Math.max(0,num(ev.acompte_recu)+num(ev.solde_recu));const reste=Math.max(0,total-received);let paiement='a_recevoir';if(total>0&&received>=total)paiement='paye';else if(received>0)paiement='partiel';return{total,reste,paiement};}
-function normalizeEvent(ev={}){const oldAcompte=num(ev.acompte);const migrated={...ev};migrated.public=Array.isArray(ev.public)?ev.public:[];migrated.ambiances=Array.isArray(ev.ambiances)?ev.ambiances:[];migrated.styles=Array.isArray(ev.styles)?ev.styles:[];migrated.materiel_sur_place=Array.isArray(ev.materiel_sur_place)?ev.materiel_sur_place:[];migrated.materiel_a_apporter=Array.isArray(ev.materiel_a_apporter)?ev.materiel_a_apporter:[];migrated.preparation=Array.isArray(ev.preparation)?ev.preparation:[];migrated.materiel_pack=ev.materiel_pack||'';migrated.frais_deplacement=num(ev.frais_deplacement);migrated.acompte_demande=ev.acompte_demande!==undefined?num(ev.acompte_demande):oldAcompte;migrated.acompte_recu=ev.acompte_recu!==undefined?num(ev.acompte_recu):oldAcompte;migrated.solde_recu=ev.solde_recu!==undefined?num(ev.solde_recu):(ev.paiement==='paye'?Math.max(0,num(ev.cachet)-oldAcompte):0);migrated.mode_reglement=ev.mode_reglement||'';migrated.date_reglement=ev.date_reglement||'';migrated.facture_envoyee=!!ev.facture_envoyee;migrated.jourj_material_done=Array.isArray(ev.jourj_material_done)?ev.jourj_material_done:[];migrated.jourj_preparation_done=Array.isArray(ev.jourj_preparation_done)?ev.jourj_preparation_done:[];migrated.record_type=ev.record_type||'booking';migrated.unavailability_reason=ev.unavailability_reason||'';migrated.unavailability_notes=ev.unavailability_notes||'';Object.assign(migrated,calcFinance(migrated));return migrated;}
+function normalizeEvent(ev={}){const oldAcompte=num(ev.acompte);const migrated={...ev};migrated.public=Array.isArray(ev.public)?ev.public:[];migrated.ambiances=Array.isArray(ev.ambiances)?ev.ambiances:[];migrated.styles=Array.isArray(ev.styles)?ev.styles:[];migrated.materiel_sur_place=Array.isArray(ev.materiel_sur_place)?ev.materiel_sur_place:[];migrated.materiel_a_apporter=Array.isArray(ev.materiel_a_apporter)?ev.materiel_a_apporter:[];migrated.preparation=Array.isArray(ev.preparation)?ev.preparation:[];migrated.materiel_pack=ev.materiel_pack||'';migrated.frais_deplacement=num(ev.frais_deplacement);migrated.acompte_demande=ev.acompte_demande!==undefined?num(ev.acompte_demande):oldAcompte;migrated.acompte_recu=ev.acompte_recu!==undefined?num(ev.acompte_recu):oldAcompte;migrated.solde_recu=ev.solde_recu!==undefined?num(ev.solde_recu):(ev.paiement==='paye'?Math.max(0,num(ev.cachet)-oldAcompte):0);migrated.mode_reglement=ev.mode_reglement||'';migrated.date_reglement=ev.date_reglement||'';
+migrated.date_acompte_recu=ev.date_acompte_recu||((num(migrated.acompte_recu)>0&&num(migrated.solde_recu)===0)?migrated.date_reglement:'');
+migrated.date_solde_recu=ev.date_solde_recu||((num(migrated.solde_recu)>0)?migrated.date_reglement:'');
+if(!migrated.date_acompte_recu&&num(migrated.acompte_recu)>0&&migrated.date_reglement)migrated.date_acompte_recu=migrated.date_reglement;
+migrated.facture_envoyee=!!ev.facture_envoyee;migrated.jourj_material_done=Array.isArray(ev.jourj_material_done)?ev.jourj_material_done:[];migrated.jourj_preparation_done=Array.isArray(ev.jourj_preparation_done)?ev.jourj_preparation_done:[];migrated.record_type=ev.record_type||'booking';migrated.unavailability_reason=ev.unavailability_reason||'';migrated.unavailability_notes=ev.unavailability_notes||'';Object.assign(migrated,calcFinance(migrated));return migrated;}
 async function getAllEvents(){return (await getAllRaw()).map(normalizeEvent)}
 async function getEvent(id){const ev=await getRaw(id);return ev?normalizeEvent(ev):null}
 
 function loadSettings(){try{return{djName:'ÉDOUARD KINNER',...JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}')}}catch{return{djName:'ÉDOUARD KINNER'}}}
 function saveSettings(s){localStorage.setItem(SETTINGS_KEY,JSON.stringify(s));applySettings()}
 function applySettings(){const s=loadSettings();$('djNameDisplay').textContent=(s.djName||'DJ').toUpperCase();if($('djNameInput'))$('djNameInput').value=s.djName||'';}
+function loadFinanceSettings(){try{return{...FINANCE_DEFAULTS,...JSON.parse(localStorage.getItem(FINANCE_SETTINGS_KEY)||'{}')}}catch{return{...FINANCE_DEFAULTS}}}
+function saveFinanceSettings(s){localStorage.setItem(FINANCE_SETTINGS_KEY,JSON.stringify({...loadFinanceSettings(),...s}))}
+function totalFinanceRate(){const s=loadFinanceSettings();return num(s.socialRate)+num(s.taxRate)+num(s.cfpRate)}
+function periodStartYearForDate(iso){const d=dateFromISO(iso),y=d.getFullYear(),m=d.getMonth()+1;return m>=5?y:y-1}
+function financePeriodBounds(startYear){return{start:`${startYear}-05-01`,end:`${startYear+1}-04-30`}}
+function formatShortDate(iso){if(!iso)return'—';return new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'}).format(dateFromISO(iso))}
+function monthKeyFromDate(iso){return iso?iso.slice(0,7):''}
+function financeMonthSequence(startYear){const out=[];for(let i=0;i<12;i++){const d=new Date(startYear,4+i,1);out.push({key:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,label:new Intl.DateTimeFormat('fr-FR',{month:'short',year:'2-digit'}).format(d)});}return out}
+function paymentEntriesForEvent(ev){
+  if(!isBooking(ev))return[];
+  const entries=[];
+  const invoice=!!ev.facture_envoyee;
+  if(num(ev.acompte_recu)>0)entries.push({
+    eventId:ev.id,date:ev.date_acompte_recu||ev.date_reglement||ev.date,
+    inferred:!(ev.date_acompte_recu||ev.date_reglement),lieu:ev.lieu||'Prestation',nature:'Acompte',
+    amount:num(ev.acompte_recu),invoice,mode:ev.mode_reglement||''
+  });
+  if(num(ev.solde_recu)>0)entries.push({
+    eventId:ev.id,date:ev.date_solde_recu||ev.date_reglement||ev.date,
+    inferred:!(ev.date_solde_recu||ev.date_reglement),lieu:ev.lieu||'Prestation',nature:'Solde',
+    amount:num(ev.solde_recu),invoice,mode:ev.mode_reglement||''
+  });
+  return entries;
+}
+function financeCalc(entry){
+  const s=loadFinanceSettings(),base=entry.invoice?num(entry.amount):0;
+  const social=base*num(s.socialRate)/100,tax=base*num(s.taxRate)/100,cfp=base*num(s.cfpRate)/100;
+  const charges=social+tax+cfp;
+  return{...entry,social,tax,cfp,charges,after:num(entry.amount)-charges};
+}
+
+function formatMoneyCompact(value){
+  return new Intl.NumberFormat('fr-FR',{
+    style:'currency',
+    currency:'EUR',
+    maximumFractionDigits:0
+  }).format(value||0);
+}
+function renderFinanceNetChart(labels,values){
+  const canvas=$('financeNetChart');
+  if(!canvas) return;
+  const cssWidth=Math.max(280, canvas.clientWidth || canvas.parentElement?.clientWidth || 320);
+  const cssHeight=220;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=Math.round(cssWidth*dpr);
+  canvas.height=Math.round(cssHeight*dpr);
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssWidth,cssHeight);
+
+  const pad={top:18,right:16,bottom:40,left:54};
+  const w=cssWidth-pad.left-pad.right;
+  const h=cssHeight-pad.top-pad.bottom;
+  const vals=values.map(v=>Number(v||0));
+  const minVal=Math.min(0,...vals);
+  const maxVal=Math.max(0,...vals);
+  const span=(maxVal-minVal)||1;
+  const axisColor='#2d3138', mutedColor='#7f8590', accentColor='#d7bf84', fillColor='rgba(215,191,132,0.12)';
+
+  function xFor(i){ return labels.length===1 ? pad.left+w/2 : pad.left + (i*(w/(labels.length-1))); }
+  function yFor(v){ return pad.top + ((maxVal-v)/span)*h; }
+
+  ctx.font='11px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif';
+  ctx.textAlign='right';
+  ctx.textBaseline='middle';
+  ctx.strokeStyle=axisColor;
+  ctx.fillStyle=mutedColor;
+  ctx.lineWidth=1;
+  const steps=4;
+  for(let i=0;i<=steps;i++){
+    const val=maxVal-(span/steps)*i;
+    const y=yFor(val);
+    ctx.beginPath();
+    ctx.moveTo(pad.left,y);
+    ctx.lineTo(pad.left+w,y);
+    ctx.stroke();
+    ctx.fillText(formatMoneyCompact(val), pad.left-8, y);
+  }
+
+  if(minVal<0 && maxVal>0){
+    const y0=yFor(0);
+    ctx.strokeStyle='rgba(201,106,106,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(pad.left,y0);
+    ctx.lineTo(pad.left+w,y0);
+    ctx.stroke();
+  }
+
+  if(!labels.length){
+    ctx.fillStyle=mutedColor;
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText('Aucune donnée', cssWidth/2, cssHeight/2);
+    return;
+  }
+
+  const baseline=yFor(Math.min(0,minVal));
+  ctx.beginPath();
+  vals.forEach((v,i)=>{
+    const x=xFor(i), y=yFor(v);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.lineTo(xFor(labels.length-1), baseline);
+  ctx.lineTo(xFor(0), baseline);
+  ctx.closePath();
+  ctx.fillStyle=fillColor;
+  ctx.fill();
+
+  ctx.beginPath();
+  vals.forEach((v,i)=>{
+    const x=xFor(i), y=yFor(v);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle=accentColor;
+  ctx.lineWidth=2.5;
+  ctx.stroke();
+
+  vals.forEach((v,i)=>{
+    const x=xFor(i), y=yFor(v);
+    ctx.beginPath();
+    ctx.arc(x,y,3.5,0,Math.PI*2);
+    ctx.fillStyle=accentColor;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x,y,1.5,0,Math.PI*2);
+    ctx.fillStyle='#101114';
+    ctx.fill();
+  });
+
+  ctx.fillStyle=mutedColor;
+  ctx.textAlign='center';
+  ctx.textBaseline='top';
+  labels.forEach((label,i)=>{
+    ctx.fillText(label, xFor(i), cssHeight-24);
+  });
+}
+
 function isoToday(){const d=new Date(),off=d.getTimezoneOffset();return new Date(d.getTime()-off*60000).toISOString().slice(0,10)}
 function dateFromISO(iso){return new Date(iso+'T12:00:00')}
 function formatLongDate(iso){return new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(dateFromISO(iso))}
@@ -50,7 +194,7 @@ function openModal(id){$(id)?.classList.remove('hidden')}
 let selectedCalendarDate='';
 function scrollTop(){const m=$('mainScroller');if(m)m.scrollTo({top:0,behavior:'instant'})}
 
-function nav(name){qsa('.view').forEach(v=>v.classList.remove('active'));const target=$('view-'+name);if(target)target.classList.add('active');qsa('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));scrollTop();if(name==='home')renderHome();if(name==='planning')renderCalendar();if(name==='more')renderMore();if(name==='form'&&!$('eventId').value)resetForm();}
+function nav(name){qsa('.view').forEach(v=>v.classList.remove('active'));const target=$('view-'+name);if(target)target.classList.add('active');qsa('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));scrollTop();if(name==='home')renderHome();if(name==='planning')renderCalendar();if(name==='more')renderMore();if(name==='finance')renderFinance();if(name==='form'&&!$('eventId').value)resetForm();}
 qsa('[data-nav]').forEach(b=>b.addEventListener('click',()=>nav(b.dataset.nav)));
 
 function clearSelections(){selected={public:[],ambiances:[],styles:[],materiel_sur_place:[],materiel_a_apporter:[],preparation:[]};currentPack='';qsa('.chip').forEach(c=>c.classList.remove('selected'));qsa('.pack-btn').forEach(b=>b.classList.remove('selected'));updatePackHelp();}
@@ -71,11 +215,15 @@ function updateFinancePreview(){const tmp={cachet:$('cachet').value,frais_deplac
 function resetForm(date=isoToday()){$('eventForm').reset();$('eventId').value='';$('date').value=date;$('statut').value='confirmee';$('formMode').textContent='NOUVELLE PRESTATION';$('formTitle').textContent='Créer';$('deleteEvent').classList.add('hidden');clearSelections();updateDuration();updateFinancePreview();}
 $('cancelEdit').addEventListener('click',()=>nav('planning'));
 function setField(id,value){if($(id))$(id).value=value??''}
-function fillForm(ev){const fields=['date','lieu','adresse','contact','telephone','heure_arrivee','heure_debut','heure_fin','nombre_personnes','preconisations','styles_a_eviter','cachet','frais_deplacement','acompte_demande','acompte_recu','solde_recu','mode_reglement','date_reglement','notes','statut'];fields.forEach(f=>setField(f,ev[f]));$('facture_envoyee').checked=!!ev.facture_envoyee;Object.keys(selected).forEach(k=>selected[k]=Array.isArray(ev[k])?[...ev[k]]:[]);currentPack=ev.materiel_pack||'';syncChips();updateDuration();updateFinancePreview();}
+function fillForm(ev){const fields=['date','lieu','adresse','contact','telephone','heure_arrivee','heure_debut','heure_fin','nombre_personnes','preconisations','styles_a_eviter','cachet','frais_deplacement','acompte_demande','acompte_recu','date_acompte_recu','solde_recu','date_solde_recu','mode_reglement','date_reglement','notes','statut'];fields.forEach(f=>setField(f,ev[f]));$('facture_envoyee').checked=!!ev.facture_envoyee;Object.keys(selected).forEach(k=>selected[k]=Array.isArray(ev[k])?[...ev[k]]:[]);currentPack=ev.materiel_pack||'';syncChips();updateDuration();updateFinancePreview();}
 async function editEvent(id){const ev=await getEvent(id);if(!ev)return;resetForm(ev.date);$('eventId').value=ev.id;fillForm(ev);$('formMode').textContent='MODIFIER LA PRESTATION';$('formTitle').textContent=ev.lieu||'Prestation';$('deleteEvent').classList.remove('hidden');nav('form');}
-async function duplicateEvent(id){const ev=await getEvent(id);if(!ev)return;resetForm('');nav('form');fillForm(ev);$('eventId').value='';$('date').value='';$('statut').value='option';$('acompte_recu').value='';$('solde_recu').value='';$('date_reglement').value='';$('facture_envoyee').checked=false;updateFinancePreview();$('formMode').textContent='DUPLIQUER LA PRESTATION';$('formTitle').textContent=ev.lieu||'Prestation';$('deleteEvent').classList.add('hidden');setTimeout(()=>$('date').focus(),150);showToast('Copie prête : choisis la nouvelle date');}
+async function duplicateEvent(id){const ev=await getEvent(id);if(!ev)return;resetForm('');nav('form');fillForm(ev);$('eventId').value='';$('date').value='';$('statut').value='option';$('acompte_recu').value='';$('date_acompte_recu').value='';$('solde_recu').value='';$('date_solde_recu').value='';$('date_reglement').value='';$('facture_envoyee').checked=false;updateFinancePreview();$('formMode').textContent='DUPLIQUER LA PRESTATION';$('formTitle').textContent=ev.lieu||'Prestation';$('deleteEvent').classList.add('hidden');setTimeout(()=>$('date').focus(),150);showToast('Copie prête : choisis la nouvelle date');}
 
-$('eventForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('eventId').value||uid(),date=$('date').value;const all=await getAllEvents();const blocked=all.find(x=>x.date===date&&x.id!==id&&isUnavailable(x));if(blocked){alert(`Cette journée est verrouillée comme indisponible${blocked.unavailability_reason?` (${blocked.unavailability_reason})`:''}. Déverrouille-la d'abord depuis le Planning.`);return;}const conflict=all.find(x=>x.date===date&&x.id!==id&&activeBooking(x));if(conflict&&!confirm(`Une prestation existe déjà ce jour : ${conflict.lieu}. Ajouter quand même ?`))return;const ev={id,date,record_type:'booking',lieu:$('lieu').value.trim(),adresse:$('adresse').value.trim(),contact:$('contact').value.trim(),telephone:$('telephone').value.trim(),heure_arrivee:$('heure_arrivee').value,heure_debut:$('heure_debut').value,heure_fin:$('heure_fin').value,duree:duration($('heure_debut').value,$('heure_fin').value),public:selected.public,nombre_personnes:num($('nombre_personnes').value),ambiances:selected.ambiances,styles:selected.styles,preconisations:$('preconisations').value.trim(),styles_a_eviter:$('styles_a_eviter').value.trim(),materiel_pack:currentPack,materiel_sur_place:selected.materiel_sur_place,materiel_a_apporter:selected.materiel_a_apporter,preparation:selected.preparation,notes:$('notes').value.trim(),statut:$('statut').value,cachet:num($('cachet').value),frais_deplacement:num($('frais_deplacement').value),acompte_demande:num($('acompte_demande').value),acompte_recu:num($('acompte_recu').value),solde_recu:num($('solde_recu').value),mode_reglement:$('mode_reglement').value,date_reglement:$('date_reglement').value,facture_envoyee:$('facture_envoyee').checked,jourj_material_done:[],jourj_preparation_done:[],updated_at:new Date().toISOString()};const previous=$('eventId').value?await getEvent(id):null;if(previous){ev.jourj_material_done=previous.jourj_material_done||[];ev.jourj_preparation_done=previous.jourj_preparation_done||[];}Object.assign(ev,calcFinance(ev));await saveEvent(ev);showToast('Prestation enregistrée');resetForm();await showDetail(id);});
+$('eventForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('eventId').value||uid(),date=$('date').value;const all=await getAllEvents();const blocked=all.find(x=>x.date===date&&x.id!==id&&isUnavailable(x));if(blocked){alert(`Cette journée est verrouillée comme indisponible${blocked.unavailability_reason?` (${blocked.unavailability_reason})`:''}. Déverrouille-la d'abord depuis le Planning.`);return;}const conflict=all.find(x=>x.date===date&&x.id!==id&&activeBooking(x));if(conflict&&!confirm(`Une prestation existe déjà ce jour : ${conflict.lieu}. Ajouter quand même ?`))return;const ev={id,date,record_type:'booking',lieu:$('lieu').value.trim(),adresse:$('adresse').value.trim(),contact:$('contact').value.trim(),telephone:$('telephone').value.trim(),heure_arrivee:$('heure_arrivee').value,heure_debut:$('heure_debut').value,heure_fin:$('heure_fin').value,duree:duration($('heure_debut').value,$('heure_fin').value),public:selected.public,nombre_personnes:num($('nombre_personnes').value),ambiances:selected.ambiances,styles:selected.styles,preconisations:$('preconisations').value.trim(),styles_a_eviter:$('styles_a_eviter').value.trim(),materiel_pack:currentPack,materiel_sur_place:selected.materiel_sur_place,materiel_a_apporter:selected.materiel_a_apporter,preparation:selected.preparation,notes:$('notes').value.trim(),statut:$('statut').value,cachet:num($('cachet').value),frais_deplacement:num($('frais_deplacement').value),acompte_demande:num($('acompte_demande').value),acompte_recu:num($('acompte_recu').value),date_acompte_recu:$('date_acompte_recu').value,
+solde_recu:num($('solde_recu').value),date_solde_recu:$('date_solde_recu').value,
+mode_reglement:$('mode_reglement').value,
+date_reglement:$('date_solde_recu').value||$('date_acompte_recu').value||$('date_reglement').value,
+facture_envoyee:$('facture_envoyee').checked,jourj_material_done:[],jourj_preparation_done:[],updated_at:new Date().toISOString()};const previous=$('eventId').value?await getEvent(id):null;if(previous){ev.jourj_material_done=previous.jourj_material_done||[];ev.jourj_preparation_done=previous.jourj_preparation_done||[];}Object.assign(ev,calcFinance(ev));await saveEvent(ev);showToast('Prestation enregistrée');resetForm();await showDetail(id);});
 $('deleteEvent').addEventListener('click',async()=>{const id=$('eventId').value;if(!id)return;if(confirm('Supprimer définitivement cette prestation ?')){await removeEvent(id);resetForm();showToast('Prestation supprimée');nav('planning')}});
 
 function eventCard(ev){const d=dateFromISO(ev.date),day=new Intl.DateTimeFormat('fr-FR',{day:'2-digit'}).format(d),mon=new Intl.DateTimeFormat('fr-FR',{month:'short'}).format(d);return`<button class="event-card" data-open="${ev.id}"><div class="event-date"><strong>${day}</strong>${mon}</div><div><div class="event-title">${escapeHTML(ev.lieu)}</div><div class="event-meta">${escapeHTML(ev.heure_debut||'—')} → ${escapeHTML(ev.heure_fin||'—')} · ${escapeHTML((ev.ambiances||[]).slice(0,2).join(' · ')||'Sans ambiance')}</div></div><i class="status ${ev.statut}"></i></button>`}
@@ -183,17 +331,98 @@ $('prevMonth').addEventListener('click',()=>{calendarCursor=new Date(calendarCur
 
 function mapsUrl(address){return address?`https://maps.apple.com/?q=${encodeURIComponent(address)}`:'#'}
 function telUrl(phone){return phone?`tel:${String(phone).replace(/[^+\d]/g,'')}`:'#'}
-async function showDetail(id){const ev=await getEvent(id);if(!ev)return;const tags=arr=>arr?.length?arr.map(x=>`<span class="pill">${escapeHTML(x)}</span>`).join(''):'<span class="muted">—</span>';$('detailContent').innerHTML=`<div class="detail-hero"><div class="hero-date">${escapeHTML(formatLongDate(ev.date))}</div><div class="detail-title">${escapeHTML(ev.lieu)}</div><div class="hero-time">${escapeHTML(ev.heure_debut||'—')} → ${escapeHTML(ev.heure_fin||'—')} ${ev.duree?`· ${escapeHTML(ev.duree)}`:''}</div><div class="pills"><span class="pill">${escapeHTML(statusLabel(ev.statut))}</span>${tags(ev.ambiances)}</div><div class="quick-actions"><a class="quick-link ${ev.adresse?'':'disabled'}" href="${mapsUrl(ev.adresse)}" target="_blank" rel="noopener">⌖ Plans</a><a class="quick-link ${ev.telephone?'':'disabled'}" href="${telUrl(ev.telephone)}">☎ Appeler</a></div><div class="detail-actions"><button class="secondary-btn" id="editDetail">Modifier</button><button class="secondary-btn" id="duplicateDetail">Dupliquer</button><button class="primary-btn" id="dayJDetail">Mode Jour J</button><button class="secondary-btn" id="icsDetail">Calendrier</button></div></div><div class="detail-grid"><div class="detail-block"><h3>Lieu & contact</h3><p>${escapeHTML(ev.adresse||'Adresse non renseignée')}</p><p>${escapeHTML(ev.contact||'Contact non renseigné')} ${ev.telephone?`· ${escapeHTML(ev.telephone)}`:''}</p><p>Arrivée : <strong>${escapeHTML(ev.heure_arrivee||'—')}</strong></p></div><div class="detail-block"><h3>Public</h3><div class="pills">${tags(ev.public)}</div><p>${ev.nombre_personnes?`${ev.nombre_personnes} personnes prévues`:'Nombre non renseigné'}</p></div><div class="detail-block"><h3>Musique</h3><div class="pills">${tags(ev.styles)}</div><p><strong>Préconisations :</strong> ${escapeHTML(ev.preconisations||'—')}</p><p><strong>À éviter :</strong> ${escapeHTML(ev.styles_a_eviter||'—')}</p></div><div class="detail-block"><h3>Matériel à apporter</h3><div class="pills">${tags(ev.materiel_a_apporter)}</div><p><strong>Sur place :</strong> ${(ev.materiel_sur_place||[]).map(escapeHTML).join(', ')||'—'}</p>${ev.materiel_pack?`<p><strong>Pack :</strong> ${escapeHTML(PACK_LABELS[ev.materiel_pack]||ev.materiel_pack)}</p>`:''}</div><div class="detail-block"><h3>Préparation</h3><div class="pills">${tags(ev.preparation)}</div></div><div class="detail-block"><h3>Financier</h3><p>Prestation : <strong>${money(ev.cachet)}</strong>${ev.frais_deplacement?` · déplacement ${money(ev.frais_deplacement)}`:''}</p><p>Total : <strong>${money(ev.total)}</strong></p><p>Acompte demandé : ${money(ev.acompte_demande)} · reçu : ${money(ev.acompte_recu)}</p><p>Solde reçu : ${money(ev.solde_recu)}</p><p>Reste : <strong>${money(ev.reste)}</strong></p><p>Paiement : ${escapeHTML(paymentLabel(ev.paiement))}${ev.mode_reglement?` · ${escapeHTML(ev.mode_reglement)}`:''}</p><p>Facture : ${ev.facture_envoyee?'envoyée':'non envoyée'}</p></div><div class="detail-block"><h3>Notes</h3><p>${escapeHTML(ev.notes||'—').replace(/\n/g,'<br>')}</p></div></div>`;$('editDetail').addEventListener('click',()=>editEvent(id));$('duplicateDetail').addEventListener('click',()=>duplicateEvent(id));$('dayJDetail').addEventListener('click',()=>showDayJ(id));$('icsDetail').addEventListener('click',()=>downloadICS(ev));qsa('.bottom-nav button').forEach(b=>b.classList.remove('active'));qsa('.view').forEach(v=>v.classList.remove('active'));$('view-detail').classList.add('active');scrollTop();}
+async function showDetail(id){const ev=await getEvent(id);if(!ev)return;const tags=arr=>arr?.length?arr.map(x=>`<span class="pill">${escapeHTML(x)}</span>`).join(''):'<span class="muted">—</span>';$('detailContent').innerHTML=`<div class="detail-hero"><div class="hero-date">${escapeHTML(formatLongDate(ev.date))}</div><div class="detail-title">${escapeHTML(ev.lieu)}</div><div class="hero-time">${escapeHTML(ev.heure_debut||'—')} → ${escapeHTML(ev.heure_fin||'—')} ${ev.duree?`· ${escapeHTML(ev.duree)}`:''}</div><div class="pills"><span class="pill">${escapeHTML(statusLabel(ev.statut))}</span>${tags(ev.ambiances)}</div><div class="quick-actions"><a class="quick-link ${ev.adresse?'':'disabled'}" href="${mapsUrl(ev.adresse)}" target="_blank" rel="noopener">⌖ Plans</a><a class="quick-link ${ev.telephone?'':'disabled'}" href="${telUrl(ev.telephone)}">☎ Appeler</a></div><div class="detail-actions"><button class="secondary-btn" id="editDetail">Modifier</button><button class="secondary-btn" id="duplicateDetail">Dupliquer</button><button class="primary-btn" id="dayJDetail">Mode Jour J</button><button class="secondary-btn" id="icsDetail">Calendrier</button></div></div><div class="detail-grid"><div class="detail-block"><h3>Lieu & contact</h3><p>${escapeHTML(ev.adresse||'Adresse non renseignée')}</p><p>${escapeHTML(ev.contact||'Contact non renseigné')} ${ev.telephone?`· ${escapeHTML(ev.telephone)}`:''}</p><p>Arrivée : <strong>${escapeHTML(ev.heure_arrivee||'—')}</strong></p></div><div class="detail-block"><h3>Public</h3><div class="pills">${tags(ev.public)}</div><p>${ev.nombre_personnes?`${ev.nombre_personnes} personnes prévues`:'Nombre non renseigné'}</p></div><div class="detail-block"><h3>Musique</h3><div class="pills">${tags(ev.styles)}</div><p><strong>Préconisations :</strong> ${escapeHTML(ev.preconisations||'—')}</p><p><strong>À éviter :</strong> ${escapeHTML(ev.styles_a_eviter||'—')}</p></div><div class="detail-block"><h3>Matériel à apporter</h3><div class="pills">${tags(ev.materiel_a_apporter)}</div><p><strong>Sur place :</strong> ${(ev.materiel_sur_place||[]).map(escapeHTML).join(', ')||'—'}</p>${ev.materiel_pack?`<p><strong>Pack :</strong> ${escapeHTML(PACK_LABELS[ev.materiel_pack]||ev.materiel_pack)}</p>`:''}</div><div class="detail-block"><h3>Préparation</h3><div class="pills">${tags(ev.preparation)}</div></div><div class="detail-block"><h3>Financier</h3><p>Prestation : <strong>${money(ev.cachet)}</strong>${ev.frais_deplacement?` · déplacement ${money(ev.frais_deplacement)}`:''}</p><p>Total : <strong>${money(ev.total)}</strong></p><p>Acompte demandé : ${money(ev.acompte_demande)} · reçu : ${money(ev.acompte_recu)}${ev.date_acompte_recu?` le ${formatShortDate(ev.date_acompte_recu)}`:''}</p><p>Solde reçu : ${money(ev.solde_recu)}${ev.date_solde_recu?` le ${formatShortDate(ev.date_solde_recu)}`:''}</p><p>Reste : <strong>${money(ev.reste)}</strong></p><p>Paiement : ${escapeHTML(paymentLabel(ev.paiement))}${ev.mode_reglement?` · ${escapeHTML(ev.mode_reglement)}`:''}</p><p>Facture : ${ev.facture_envoyee?'envoyée':'non envoyée'}</p></div><div class="detail-block"><h3>Notes</h3><p>${escapeHTML(ev.notes||'—').replace(/\n/g,'<br>')}</p></div></div>`;$('editDetail').addEventListener('click',()=>editEvent(id));$('duplicateDetail').addEventListener('click',()=>duplicateEvent(id));$('dayJDetail').addEventListener('click',()=>showDayJ(id));$('icsDetail').addEventListener('click',()=>downloadICS(ev));qsa('.bottom-nav button').forEach(b=>b.classList.remove('active'));qsa('.view').forEach(v=>v.classList.remove('active'));$('view-detail').classList.add('active');scrollTop();}
 
 async function showDayJ(id){const ev=await getEvent(id);if(!ev)return;const checks=(items,done,kind)=>items?.length?items.map(x=>`<button class="check-item ${done.includes(x)?'done':''}" data-check-kind="${kind}" data-check-value="${encodeURIComponent(x)}">${escapeHTML(x)}</button>`).join(''):'<p class="muted">Aucun élément.</p>';$('dayJContent').innerHTML=`<div class="dayj-head"><div class="hero-date">MODE JOUR J · ${escapeHTML(formatLongDate(ev.date))}</div><div class="detail-title">${escapeHTML(ev.lieu)}</div><div class="quick-actions"><a class="quick-link ${ev.adresse?'':'disabled'}" href="${mapsUrl(ev.adresse)}" target="_blank" rel="noopener">⌖ Ouvrir dans Plans</a><a class="quick-link ${ev.telephone?'':'disabled'}" href="${telUrl(ev.telephone)}">☎ Appeler</a></div></div><div class="dayj-time-grid"><div class="dayj-time"><span>Arrivée</span><strong>${escapeHTML(ev.heure_arrivee||'—')}</strong></div><div class="dayj-time"><span>Set</span><strong>${escapeHTML(ev.heure_debut||'—')} → ${escapeHTML(ev.heure_fin||'—')}</strong></div></div><div class="detail-grid" style="margin-top:12px"><div class="detail-block"><h3>Public</h3><p>${escapeHTML((ev.public||[]).join(' · ')||'—')}${ev.nombre_personnes?` · ${ev.nombre_personnes} personnes`:''}</p></div><div class="detail-block"><h3>Direction musicale</h3><p><strong>${escapeHTML((ev.styles||[]).join(' · ')||'—')}</strong></p><p class="dayj-note">${escapeHTML(ev.preconisations||'Aucune préconisation')}</p>${ev.styles_a_eviter?`<p><strong>À éviter :</strong> ${escapeHTML(ev.styles_a_eviter)}</p>`:''}</div><div class="detail-block"><h3>Matériel à charger</h3><div class="checklist">${checks(ev.materiel_a_apporter,ev.jourj_material_done,'material')}</div></div><div class="detail-block"><h3>Préparation</h3><div class="checklist">${checks(ev.preparation,ev.jourj_preparation_done,'prep')}</div></div><div class="detail-block"><h3>Notes</h3><p class="dayj-note">${escapeHTML(ev.notes||'—')}</p></div><button class="secondary-btn full" id="backToDetail">← Retour au brief complet</button></div>`;qsa('[data-check-kind]').forEach(b=>b.addEventListener('click',async()=>{const value=decodeURIComponent(b.dataset.checkValue),kind=b.dataset.checkKind,fresh=await getEvent(id),key=kind==='material'?'jourj_material_done':'jourj_preparation_done',arr=fresh[key]||[];fresh[key]=arr.includes(value)?arr.filter(x=>x!==value):[...arr,value];await saveEvent(fresh);b.classList.toggle('done',fresh[key].includes(value));}));$('backToDetail').addEventListener('click',()=>showDetail(id));qsa('.bottom-nav button').forEach(b=>b.classList.remove('active'));qsa('.view').forEach(v=>v.classList.remove('active'));$('view-dayj').classList.add('active');scrollTop();}
+
+
+async function renderFinance(){
+  if(financeSeasonYear===null)financeSeasonYear=periodStartYearForDate(isoToday());
+  const s=loadFinanceSettings(),bounds=financePeriodBounds(financeSeasonYear);
+  $('financePeriodTitle').textContent=`01/05/${financeSeasonYear} → 30/04/${financeSeasonYear+1}`;
+  $('socialRateInput').value=s.socialRate;
+  $('taxRateInput').value=s.taxRate;
+  $('cfpRateInput').value=s.cfpRate;
+  $('financeTotalRate').textContent=`${totalFinanceRate().toFixed(2).replace('.',',')} %`;
+
+  const all=await getAllEvents();
+  const entries=all.flatMap(paymentEntriesForEvent).filter(x=>x.date>=bounds.start&&x.date<=bounds.end).map(financeCalc).sort((a,b)=>a.date.localeCompare(b.date));
+  const total=entries.reduce((a,x)=>a+x.amount,0);
+  const invoiced=entries.filter(x=>x.invoice).reduce((a,x)=>a+x.amount,0);
+  const nonInvoiced=total-invoiced;
+  const charges=entries.reduce((a,x)=>a+x.charges,0);
+  const after=entries.reduce((a,x)=>a+x.after,0);
+
+  $('financeKpis').innerHTML=`
+    <div class="finance-kpi"><span>Total encaissé</span><strong>${money(total)}</strong><em>Acompte + solde</em></div>
+    <div class="finance-kpi"><span>Encaissé facturé</span><strong>${money(invoiced)}</strong><em>Base de provision affichée</em></div>
+    <div class="finance-kpi"><span>Encaissé non facturé</span><strong>${money(nonInvoiced)}</strong><em>Charges non calculées selon ton filtre</em></div>
+    <div class="finance-kpi"><span>Charges provisionnées</span><strong>${money(charges)}</strong><em>${totalFinanceRate().toFixed(2).replace('.',',')} % sur le facturé encaissé</em></div>
+    <div class="finance-kpi wide"><span>Disponible après provisions affichées</span><strong>${money(after)}</strong><em>Encaissements − provisions calculées</em></div>`;
+
+  const social=entries.reduce((a,x)=>a+x.social,0),tax=entries.reduce((a,x)=>a+x.tax,0),cfp=entries.reduce((a,x)=>a+x.cfp,0);
+  $('financeChargesBreakdown').innerHTML=`
+    <div class="charge-card"><span>Cotisations sociales<br>${num(s.socialRate).toFixed(2).replace('.',',')} %</span><strong>${money(social)}</strong></div>
+    <div class="charge-card"><span>Versement libératoire IR<br>${num(s.taxRate).toFixed(2).replace('.',',')} %</span><strong>${money(tax)}</strong></div>
+    <div class="charge-card"><span>CFP<br>${num(s.cfpRate).toFixed(2).replace('.',',')} %</span><strong>${money(cfp)}</strong></div>`;
+
+  const months=financeMonthSequence(financeSeasonYear);
+  const monthlyRows=months.map(m=>{
+    const xs=entries.filter(x=>monthKeyFromDate(x.date)===m.key);
+    const mt=xs.reduce((a,x)=>a+x.amount,0),mi=xs.filter(x=>x.invoice).reduce((a,x)=>a+x.amount,0),mc=xs.reduce((a,x)=>a+x.charges,0),ma=xs.reduce((a,x)=>a+x.after,0);
+    return {...m,total:mt,invoiced:mi,charges:mc,after:ma};
+  });
+  renderFinanceNetChart(monthlyRows.map(x=>x.label.split(' ')[0]), monthlyRows.map(x=>x.after));
+  $('financeMonthlyBody').innerHTML=monthlyRows.map(m=>`<tr><td>${escapeHTML(m.label)}</td><td>${money(m.total)}</td><td>${money(m.invoiced)}</td><td>${money(m.charges)}</td><td>${money(m.after)}</td></tr>`).join('');
+
+  $('financeDetailBody').innerHTML=entries.length?entries.map(x=>`<tr>
+    <td>${formatShortDate(x.date)}${x.inferred?' *':''}</td>
+    <td>${escapeHTML(x.lieu)}</td>
+    <td>${escapeHTML(x.nature)}</td>
+    <td>${money(x.amount)}</td>
+    <td class="${x.invoice?'invoice-yes':'invoice-no'}">${x.invoice?'Oui':'Non'}</td>
+    <td>${money(x.charges)}</td>
+    <td>${money(x.after)}</td>
+  </tr>`).join(''):`<tr><td colspan="7" class="finance-empty">Aucun encaissement sur cette période.</td></tr>`;
+
+  window.__financeEntries=entries;
+}
+
+$('openFinanceBtn').addEventListener('click',()=>nav('finance'));
+$('backFromFinance').addEventListener('click',()=>nav('more'));
+$('financePrevYear').addEventListener('click',()=>{financeSeasonYear=(financeSeasonYear??periodStartYearForDate(isoToday()))-1;renderFinance()});
+$('financeNextYear').addEventListener('click',()=>{financeSeasonYear=(financeSeasonYear??periodStartYearForDate(isoToday()))+1;renderFinance()});
+$('saveFinanceRatesBtn').addEventListener('click',()=>{
+  saveFinanceSettings({
+    socialRate:num($('socialRateInput').value),
+    taxRate:num($('taxRateInput').value),
+    cfpRate:num($('cfpRateInput').value)
+  });
+  showToast('Taux enregistrés');
+  renderFinance();
+});
+$('financeCsvBtn').addEventListener('click',()=>{
+  const rows=window.__financeEntries||[];
+  const header=['Date','Prestation','Nature','Encaisse','Facture_envoyee','Cotisations_sociales','Versement_liberatoire','CFP','Charges_total','Apres_provisions'];
+  const esc=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+  const csv='\ufeff'+[header.join(';'),...rows.map(x=>[
+    x.date,x.lieu,x.nature,x.amount.toFixed(2),x.invoice?'Oui':'Non',
+    x.social.toFixed(2),x.tax.toFixed(2),x.cfp.toFixed(2),x.charges.toFixed(2),x.after.toFixed(2)
+  ].map(esc).join(';'))].join('\n');
+  downloadBlob(csv,'text/csv;charset=utf-8',`DJPlanner_Finances_${financeSeasonYear}-${financeSeasonYear+1}.csv`);
+});
+
+window.addEventListener('resize',()=>{
+  if($('view-finance')?.classList.contains('active')) renderFinance();
+});
 
 async function renderMore(){applySettings();const all=(await getAllEvents()).sort((a,b)=>b.date.localeCompare(a.date)),past=all.filter(e=>isBooking(e)&&(e.date<isoToday()||e.statut==='realisee'));$('archiveList').innerHTML=past.map(eventCard).join('')||'<p class="muted">Aucune prestation archivée.</p>';}
 $('saveSettingsBtn').addEventListener('click',()=>{const name=$('djNameInput').value.trim()||'DJ';saveSettings({djName:name});showToast('Nom enregistré')});
 
 function downloadBlob(content,type,name){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-$('backupBtn').addEventListener('click',async()=>{const events=await getAllEvents(),payload={app:'DJ Planner',version:'1.2',exported_at:new Date().toISOString(),settings:loadSettings(),events};downloadBlob(JSON.stringify(payload,null,2),'application/json',`DJPlanner_Backup_${isoToday()}.json`);showToast('Sauvegarde créée')});
-$('restoreInput').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!Array.isArray(data.events))throw new Error('Format incorrect');if(!confirm(`Restaurer ${data.events.length} prestation(s) ? Les éléments ayant le même identifiant seront remplacés.`))return;for(const ev of data.events)await saveEvent(normalizeEvent(ev));if(data.settings?.djName)saveSettings(data.settings);showToast('Sauvegarde restaurée');renderMore()}catch(err){alert('Ce fichier ne semble pas être une sauvegarde DJ Planner valide.')}e.target.value=''});
-$('csvBtn').addEventListener('click',async()=>{const all=(await getAllEvents()).filter(isBooking),cols=['date','lieu','adresse','contact','telephone','heure_arrivee','heure_debut','heure_fin','duree','public','nombre_personnes','ambiances','styles','preconisations','styles_a_eviter','materiel_pack','materiel_sur_place','materiel_a_apporter','preparation','statut','cachet','frais_deplacement','total','acompte_demande','acompte_recu','solde_recu','reste','paiement','mode_reglement','date_reglement','facture_envoyee','notes'],esc=v=>`"${String(Array.isArray(v)?v.join(' | '):(v??'')).replace(/"/g,'""')}"`,csv='\ufeff'+[cols.join(';'),...all.map(ev=>cols.map(c=>esc(ev[c])).join(';'))].join('\n');downloadBlob(csv,'text/csv;charset=utf-8',`DJPlanner_Export_${isoToday()}.csv`)});
+$('backupBtn').addEventListener('click',async()=>{const events=await getAllEvents(),payload={app:'DJ Planner',version:'1.3',exported_at:new Date().toISOString(),settings:loadSettings(),finance_settings:loadFinanceSettings(),events};downloadBlob(JSON.stringify(payload,null,2),'application/json',`DJPlanner_Backup_${isoToday()}.json`);showToast('Sauvegarde créée')});
+$('restoreInput').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!Array.isArray(data.events))throw new Error('Format incorrect');if(!confirm(`Restaurer ${data.events.length} prestation(s) ? Les éléments ayant le même identifiant seront remplacés.`))return;for(const ev of data.events)await saveEvent(normalizeEvent(ev));if(data.settings?.djName)saveSettings(data.settings);if(data.finance_settings)saveFinanceSettings(data.finance_settings);showToast('Sauvegarde restaurée');renderMore()}catch(err){alert('Ce fichier ne semble pas être une sauvegarde DJ Planner valide.')}e.target.value=''});
+$('csvBtn').addEventListener('click',async()=>{const all=(await getAllEvents()).filter(isBooking),cols=['date','lieu','adresse','contact','telephone','heure_arrivee','heure_debut','heure_fin','duree','public','nombre_personnes','ambiances','styles','preconisations','styles_a_eviter','materiel_pack','materiel_sur_place','materiel_a_apporter','preparation','statut','cachet','frais_deplacement','total','acompte_demande','acompte_recu','date_acompte_recu','solde_recu','date_solde_recu','reste','paiement','mode_reglement','date_reglement','facture_envoyee','notes'],esc=v=>`"${String(Array.isArray(v)?v.join(' | '):(v??'')).replace(/"/g,'""')}"`,csv='\ufeff'+[cols.join(';'),...all.map(ev=>cols.map(c=>esc(ev[c])).join(';'))].join('\n');downloadBlob(csv,'text/csv;charset=utf-8',`DJPlanner_Export_${isoToday()}.csv`)});
 
 function icsEscape(s=''){return String(s).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;')}
 function localICSDate(date,time){const t=time||'00:00';return date.replace(/-/g,'')+'T'+t.replace(':','')+'00'}

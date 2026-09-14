@@ -199,18 +199,32 @@
               <label>Frais déplacement € <input id="frais_deplacement" type="number" min="0" step="0.01" inputmode="decimal"></label>
             </div>
             <div class="finance-summary"><span>Total prestation</span><strong id="totalPreview">0,00 €</strong></div>
-            <div class="three-cols finance-inputs">
-              <label>Acompte demandé € <input id="acompte_demande" type="number" min="0" step="0.01" inputmode="decimal"></label>
-              <label>Acompte reçu € <input id="acompte_recu" type="number" min="0" step="0.01" inputmode="decimal"></label>
-              <label>Solde reçu € <input id="solde_recu" type="number" min="0" step="0.01" inputmode="decimal"></label>
+
+            <label>Acompte demandé € <input id="acompte_demande" type="number" min="0" step="0.01" inputmode="decimal"></label>
+
+            <div class="payment-entry-box">
+              <div class="field-label">Acompte encaissé</div>
+              <div class="two-cols">
+                <label>Montant reçu € <input id="acompte_recu" type="number" min="0" step="0.01" inputmode="decimal"></label>
+                <label>Date d'encaissement <input id="date_acompte_recu" type="date"></label>
+              </div>
             </div>
+
+            <div class="payment-entry-box">
+              <div class="field-label">Solde encaissé</div>
+              <div class="two-cols">
+                <label>Montant reçu € <input id="solde_recu" type="number" min="0" step="0.01" inputmode="decimal"></label>
+                <label>Date d'encaissement <input id="date_solde_recu" type="date"></label>
+              </div>
+            </div>
+
             <div class="finance-summary strong"><span>Reste à recevoir</span><strong id="restePreview">0,00 €</strong></div>
-            <div class="two-cols">
-              <label>Mode de règlement
-                <select id="mode_reglement"><option value="">Non renseigné</option><option>Virement</option><option>Espèces</option><option>CB</option><option>Chèque</option><option>Autre</option></select>
-              </label>
-              <label>Date de règlement <input id="date_reglement" type="date"></label>
-            </div>
+
+            <label>Mode de règlement
+              <select id="mode_reglement"><option value="">Non renseigné</option><option>Virement</option><option>Espèces</option><option>CB</option><option>Chèque</option><option>Autre</option></select>
+            </label>
+            <input id="date_reglement" type="hidden">
+
             <label class="toggle-row"><input id="facture_envoyee" type="checkbox"> <span>Facture envoyée</span></label>
             <div class="computed">Statut calculé : <strong id="paymentPreview">À recevoir</strong></div>
           </fieldset>
@@ -227,12 +241,102 @@
       <section id="view-detail" class="view"><div id="detailContent"></div></section>
       <section id="view-dayj" class="view"><div id="dayJContent"></div></section>
 
+
+      <section id="view-finance" class="view">
+        <div class="section-head finance-page-head">
+          <div>
+            <div class="eyebrow">PILOTAGE MICRO-ENTREPRISE</div>
+            <h2>Finances & encaissements</h2>
+          </div>
+          <button class="text-btn" id="backFromFinance">← Plus</button>
+        </div>
+
+        <div class="finance-period-card">
+          <button class="icon-btn finance-year-btn" id="financePrevYear" aria-label="Exercice précédent">‹</button>
+          <div>
+            <div class="muted tiny">Période de suivi interne</div>
+            <strong id="financePeriodTitle">01/05/2026 → 30/04/2027</strong>
+          </div>
+          <button class="icon-btn finance-year-btn" id="financeNextYear" aria-label="Exercice suivant">›</button>
+        </div>
+
+        <div id="financeKpis" class="finance-kpis"></div>
+
+        <div class="settings-card finance-warning">
+          <h3>Règle de calcul utilisée</h3>
+          <p>Selon ton choix, les charges ci-dessous sont provisionnées uniquement pour les encaissements dont la prestation a la case <strong>Facture envoyée</strong> cochée.</p>
+          <p class="muted">Attention : juridiquement, en micro-entreprise, le chiffre d'affaires est en principe pris en compte à l'encaissement. Le montant « encaissé non facturé » est donc affiché séparément et ne doit pas être interprété comme exonéré de charges.</p>
+        </div>
+
+        <div class="settings-card">
+          <div class="section-head">
+            <h3>Charges provisionnées</h3>
+            <span id="financeTotalRate" class="rate-badge">23,00 %</span>
+          </div>
+          <div id="financeChargesBreakdown" class="charges-grid"></div>
+        </div>
+
+        <div class="settings-card">
+          <div class="section-head">
+            <h3>Courbe du net encaissé</h3>
+            <span class="muted tiny">Après provision de charges</span>
+          </div>
+          <div class="chart-shell">
+            <canvas id="financeNetChart" height="220" aria-label="Courbe du net encaissé" role="img"></canvas>
+          </div>
+          <p class="muted tiny chart-note">Chaque point représente le net encaissé du mois : encaissements du mois moins provisions de charges du mois.</p>
+        </div>
+
+        <div class="settings-card">
+          <h3>Vue mensuelle</h3>
+          <div class="finance-table-wrap">
+            <table class="finance-table">
+              <thead>
+                <tr><th>Mois</th><th>Encaissé</th><th>Facturé</th><th>Charges</th><th>Après provision</th></tr>
+              </thead>
+              <tbody id="financeMonthlyBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="section-head">
+            <h3>Détail des encaissements</h3>
+            <button class="text-btn" id="financeCsvBtn">Exporter CSV</button>
+          </div>
+          <div class="finance-table-wrap">
+            <table class="finance-table finance-detail-table">
+              <thead>
+                <tr><th>Date</th><th>Prestation</th><th>Nature</th><th>Encaissé</th><th>Facture</th><th>Charges</th><th>Après provision</th></tr>
+              </thead>
+              <tbody id="financeDetailBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h3>Paramètres de calcul</h3>
+          <div class="three-cols rate-inputs">
+            <label>Cotisations sociales % <input id="socialRateInput" type="number" min="0" step="0.01" inputmode="decimal"></label>
+            <label>Versement libératoire % <input id="taxRateInput" type="number" min="0" step="0.01" inputmode="decimal"></label>
+            <label>CFP % <input id="cfpRateInput" type="number" min="0" step="0.01" inputmode="decimal"></label>
+          </div>
+          <button class="secondary-btn full" id="saveFinanceRatesBtn">Enregistrer les taux</button>
+          <p class="muted tiny" style="margin-top:10px">Valeurs initiales V1.3 : 21,20 % + 1,70 % + 0,10 % = 23,00 %.</p>
+        </div>
+      </section>
+
       <section id="view-more" class="view">
         <h2>Plus</h2>
         <div class="settings-card">
           <h3>Réglages</h3>
           <label>Nom DJ / nom d'artiste <input id="djNameInput" type="text" placeholder="Édouard Kinner"></label>
           <button class="secondary-btn full" id="saveSettingsBtn">Enregistrer le nom</button>
+        </div>
+        <div class="settings-card finance-entry-card">
+          <h3>Finances & encaissements</h3>
+          <p>Suivi des paiements, provisions sociales et fiscales, vue mensuelle et période du 1er mai au 30 avril.</p>
+          <button class="primary-btn" id="openFinanceBtn">Ouvrir le tableau financier</button>
         </div>
         <div class="settings-card">
           <h3>Sauvegarde</h3>
@@ -246,7 +350,7 @@
         </div>
         <div class="settings-card">
           <h3>Version</h3>
-          <p><strong>DJ Planner V1.2.1</strong><br>Correctif Mode Jour J : les checklists s'enregistrent sans retour en haut de page.</p>
+          <p><strong>DJ Planner V1.3.1</strong><br>Ajout de la courbe du net encaissé dans la vue Finances & encaissements.</p>
           <p class="muted">La synchronisation Google Calendar → Calendrier Apple sera branchée après validation de cette V1.1.</p>
         </div>
       </section>
