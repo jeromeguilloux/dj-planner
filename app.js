@@ -28,7 +28,7 @@ function removeEvent(id){return new Promise((resolve,reject)=>{const r=tx('readw
 function uid(){return 'ev_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)}
 function num(v){const n=Number(v||0);return Number.isFinite(n)?n:0}
 function calcFinance(ev){const total=Math.max(0,num(ev.cachet)+num(ev.frais_deplacement));const received=Math.max(0,num(ev.acompte_recu)+num(ev.solde_recu));const reste=Math.max(0,total-received);let paiement='a_recevoir';if(total>0&&received>=total)paiement='paye';else if(received>0)paiement='partiel';return{total,reste,paiement};}
-function normalizeEvent(ev={}){const oldAcompte=num(ev.acompte);const migrated={...ev};migrated.public=Array.isArray(ev.public)?ev.public:[];migrated.ambiances=Array.isArray(ev.ambiances)?ev.ambiances:[];migrated.styles=Array.isArray(ev.styles)?ev.styles:[];migrated.materiel_sur_place=Array.isArray(ev.materiel_sur_place)?ev.materiel_sur_place:[];migrated.materiel_a_apporter=Array.isArray(ev.materiel_a_apporter)?ev.materiel_a_apporter:[];migrated.preparation=Array.isArray(ev.preparation)?ev.preparation:[];migrated.materiel_pack=ev.materiel_pack||'';migrated.frais_deplacement=num(ev.frais_deplacement);migrated.acompte_demande=ev.acompte_demande!==undefined?num(ev.acompte_demande):oldAcompte;migrated.acompte_recu=ev.acompte_recu!==undefined?num(ev.acompte_recu):oldAcompte;migrated.solde_recu=ev.solde_recu!==undefined?num(ev.solde_recu):(ev.paiement==='paye'?Math.max(0,num(ev.cachet)-oldAcompte):0);migrated.mode_reglement=ev.mode_reglement||'';migrated.date_reglement=ev.date_reglement||'';
+function normalizeEvent(ev={}){const oldAcompte=num(ev.acompte);const migrated={...ev};migrated.public=(Array.isArray(ev.public)?ev.public:[]).filter(v=>v!=='40+');migrated.ambiances=Array.isArray(ev.ambiances)?ev.ambiances:[];migrated.styles=Array.isArray(ev.styles)?ev.styles:[];migrated.materiel_sur_place=Array.isArray(ev.materiel_sur_place)?ev.materiel_sur_place:[];migrated.materiel_a_apporter=Array.isArray(ev.materiel_a_apporter)?ev.materiel_a_apporter:[];migrated.preparation=Array.isArray(ev.preparation)?ev.preparation:[];migrated.materiel_pack=ev.materiel_pack||'';migrated.frais_deplacement=num(ev.frais_deplacement);migrated.acompte_demande=ev.acompte_demande!==undefined?num(ev.acompte_demande):oldAcompte;migrated.acompte_recu=ev.acompte_recu!==undefined?num(ev.acompte_recu):oldAcompte;migrated.solde_recu=ev.solde_recu!==undefined?num(ev.solde_recu):(ev.paiement==='paye'?Math.max(0,num(ev.cachet)-oldAcompte):0);migrated.mode_reglement=ev.mode_reglement||'';migrated.date_reglement=ev.date_reglement||'';
 migrated.date_acompte_recu=ev.date_acompte_recu||((num(migrated.acompte_recu)>0&&num(migrated.solde_recu)===0)?migrated.date_reglement:'');
 migrated.date_solde_recu=ev.date_solde_recu||((num(migrated.solde_recu)>0)?migrated.date_reglement:'');
 if(!migrated.date_acompte_recu&&num(migrated.acompte_recu)>0&&migrated.date_reglement)migrated.date_acompte_recu=migrated.date_reglement;
@@ -201,7 +201,7 @@ qsa('[data-nav]').forEach(b=>b.addEventListener('click',e=>{
 }));
 
 function clearSelections(){selected={public:[],ambiances:[],styles:[],materiel_sur_place:[],materiel_a_apporter:[],preparation:[]};currentPack='';qsa('.chip').forEach(c=>c.classList.remove('selected'));qsa('.pack-btn').forEach(b=>b.classList.remove('selected'));updatePackHelp();}
-function syncChips(){qsa('.chips[data-field]').forEach(group=>{const field=group.dataset.field;qsa('.chip',group).forEach(ch=>ch.classList.toggle('selected',(selected[field]||[]).includes(ch.dataset.value)))});qsa('.pack-btn').forEach(b=>b.classList.toggle('selected',b.dataset.pack===currentPack));updatePackHelp();}
+function syncChips(){if(Array.isArray(selected.public))selected.public=selected.public.filter(v=>v!=='40+');qsa('.chips[data-field]').forEach(group=>{const field=group.dataset.field;qsa('.chip',group).forEach(ch=>ch.classList.toggle('selected',(selected[field]||[]).includes(ch.dataset.value)))});qsa('.pack-btn').forEach(b=>b.classList.toggle('selected',b.dataset.pack===currentPack));updatePackHelp();}
 function updatePackHelp(){const el=$('packHelp');if(!el)return;el.textContent=currentPack?`${PACK_LABELS[currentPack]} actif : ce qui est fourni sur place est retiré automatiquement de la liste à apporter.`:`Mode personnalisé : la liste « À apporter » peut être cochée librement.`;}
 function recalcMaterialFromPack(){if(!currentPack)return;const onsite=new Set(selected.materiel_sur_place);selected.materiel_a_apporter=PACKS[currentPack].filter(x=>!onsite.has(x));syncChips();}
 qsa('.chips[data-field]').forEach(group=>{group.addEventListener('click',e=>{const ch=e.target.closest('.chip');if(!ch)return;const field=group.dataset.field,value=ch.dataset.value;const arr=selected[field]||[];selected[field]=arr.includes(value)?arr.filter(v=>v!==value):[...arr,value];if(field==='materiel_sur_place'&&currentPack)recalcMaterialFromPack();else if(field==='materiel_a_apporter'){currentPack='';syncChips();}else syncChips();});});
@@ -270,8 +270,8 @@ $('dayActionCancel').addEventListener('click',()=>closeModal('dayActionModal'));
 $('dayAddBooking').addEventListener('click',()=>{
   const date=selectedCalendarDate;
   closeModal('dayActionModal');
-  resetForm(date);
   nav('form');
+  resetForm(date);
 });
 $('dayBlock').addEventListener('click',()=>{
   const date=selectedCalendarDate;
@@ -436,7 +436,7 @@ function downloadICS(ev){const startTime=ev.heure_arrivee||ev.heure_debut||'00:0
 
 if('serviceWorker'in navigator){
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('./sw.js?v=1.3.2',{updateViaCache:'none'})
+    navigator.serviceWorker.register('./sw.js?v=1.3.3',{updateViaCache:'none'})
       .then(reg=>reg.update().catch(()=>{}))
       .catch(()=>{});
   });

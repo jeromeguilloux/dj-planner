@@ -1,10 +1,10 @@
-const CACHE='dj-planner-v1-3-2';
+const CACHE='dj-planner-v1-3-3';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=1.3.2',
-  './app.js?v=1.3.2',
-  './manifest.webmanifest?v=1.3.2',
+  './styles.css?v=1.3.3',
+  './app.js?v=1.3.3',
+  './manifest.webmanifest?v=1.3.3',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png'

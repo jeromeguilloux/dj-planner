@@ -1,30 +1,38 @@
-# DJ Planner V1.3.2 — Correctif iPhone tableau financier
+# DJ Planner V1.3.3 — Correctifs Planning & Public
 
-## Bug corrigé
-Sur iPhone, le bouton **Ouvrir le tableau financier** pouvait être visible mais ne rien faire.
+## Correctif 1 — Date depuis le Planning
+Quand tu sélectionnes une date libre dans **Planning**, puis **Ajouter une prestation**, le formulaire reprend maintenant correctement la date sélectionnée.
 
-## Cause
-Safari/PWA pouvait charger le nouveau HTML tout en conservant un ancien `app.js` dans le cache.
+Exemple :
+- tu touches le 20 septembre ;
+- tu choisis Ajouter une prestation ;
+- le formulaire affiche bien le 20 septembre et non la date du jour.
 
-## Corrections
-- bouton Finance relié aussi au système de navigation générique ;
-- fichiers critiques versionnés en `1.3.2` ;
-- nouveau cache `dj-planner-v1-3-2` ;
-- chargement réseau prioritaire pour HTML / JS / CSS / manifeste ;
-- ancien cache supprimé à l'activation ;
-- Service Worker enregistré avec `updateViaCache: none`.
+## Correctif 2 — Tranches de public
+La catégorie **40+** a été supprimée car elle faisait doublon avec la grille existante.
+
+Tranches conservées :
+- 18–25
+- 25–35
+- 35–45
+- 45+
+
+Catégories transversales conservées :
+- Mixte
+- Familial
+- Entreprise
+- Étudiants
+
+Les anciennes fiches contenant encore `40+` sont nettoyées automatiquement à l'ouverture.
 
 ## Mise à jour GitHub
-1. Décompresse `DJ_Planner_V1_3_2.zip`.
+1. Décompresse `DJ_Planner_V1_3_3.zip`.
 2. GitHub > dépôt `dj-planner`.
 3. `Add file` > `Upload files`.
 4. Dépose tout le contenu.
-5. Message conseillé : `DJ Planner V1.3.2 - correctif finance iPhone`.
-6. Valide et attends GitHub Pages.
+5. Message conseillé : `DJ Planner V1.3.3 - correctifs planning et public`.
+6. Valide les modifications.
+7. Attends le redéploiement GitHub Pages.
+8. Si nécessaire, ouvre d'abord l'adresse dans Safari et recharge une fois.
 
-## Après déploiement sur iPhone
-1. Ouvre d'abord l'adresse DJ Planner dans Safari.
-2. Recharge une fois.
-3. Ferme complètement l'app DJ Planner installée.
-4. Rouvre-la depuis l'écran d'accueil.
-5. Va dans `Plus > Ouvrir le tableau financier`.
+Le cache PWA passe à `dj-planner-v1-3-3`.
